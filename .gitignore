@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.local
+.DS_Store
+
+# 実機検証素材（スクショ等のバイナリ）はコミットしない。台帳 md のみ管理
+materials/*.png
+materials/*.jpg
+materials/*.jpeg
