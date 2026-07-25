@@ -1,0 +1,7 @@
+# ビルド成果物と生成データ
+dist/
+src/core/font-widths.json
+
+# BM チェッカーから移植した CSS（1 行書きの体裁ごと維持する。
+# Prettier に通すと全行が展開され、ベースとの目視比較ができなくなる）
+src/style.css

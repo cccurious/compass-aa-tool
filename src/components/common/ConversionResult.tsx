@@ -51,7 +51,8 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
                 {result.overflowLines.length > 0 && (
                     <div className="warn-note">
                         ⚠️ {result.overflowLines.map((n) => n + 1).join(', ')} 行目が 1 行の上限
-                        （全角約 {Math.floor(LINE_LIMIT)} 文字）を超えています。行を短くしてください。
+                        （全角約 {Math.floor(LINE_LIMIT)}{' '}
+                        文字）を超えています。行を短くしてください。
                     </div>
                 )}
                 {result.removedLines.length > 0 && (

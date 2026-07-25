@@ -94,10 +94,17 @@ function App() {
 
             <main className="main-content">
                 <div className={`view-section ${currentView === 'dot' ? 'active' : ''}`}>
-                    <DotEditorView onSendToConverter={handleSendToConverter} onCopied={handleCopied} />
+                    <DotEditorView
+                        onSendToConverter={handleSendToConverter}
+                        onCopied={handleCopied}
+                    />
                 </div>
                 <div className={`view-section ${currentView === 'aa' ? 'active' : ''}`}>
-                    <AaConverterView input={aaInput} setInput={setAaInput} onCopied={handleCopied} />
+                    <AaConverterView
+                        input={aaInput}
+                        setInput={setAaInput}
+                        onCopied={handleCopied}
+                    />
                 </div>
                 <div className={`view-section ${currentView === 'guide' ? 'active' : ''}`}>
                     <GuideView />

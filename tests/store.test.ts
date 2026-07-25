@@ -8,7 +8,9 @@ describe('パレット追加（新規優先の押し出し）', () => {
     });
     it('上限を超えると古いものから押し出される', () => {
         const chars = SUGGEST_CHARS.slice(0, MAX_CUSTOM_CHARS + 3);
-        const r1 = useDotStore.getState().addPaletteChars(chars.slice(0, MAX_CUSTOM_CHARS).join(''));
+        const r1 = useDotStore
+            .getState()
+            .addPaletteChars(chars.slice(0, MAX_CUSTOM_CHARS).join(''));
         expect(r1.added).toHaveLength(MAX_CUSTOM_CHARS);
         expect(r1.evicted).toHaveLength(0);
         const r2 = useDotStore.getState().addPaletteChars(chars.slice(MAX_CUSTOM_CHARS).join(''));

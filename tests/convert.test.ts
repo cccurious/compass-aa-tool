@@ -44,8 +44,8 @@ describe('convert', () => {
     it('レトリバー AA の後ろ足 jj が転落しない（インシデント#1/#2 回帰テスト）', () => {
         const src = [
             '.　 　 _',
-            '　　r\'ﾟJヽ ＿__ ____,',
-            '. 　 ｀ヽ　 　 　 }ー\'',
+            "　　r'ﾟJヽ ＿__ ____,",
+            ". 　 ｀ヽ　 　 　 }ー'",
             '. 　 　 j j＾⌒j jj',
             '.　 　 ´´ 　 ´´´',
         ];
@@ -186,8 +186,12 @@ describe('罫線パレット（丸角つき）', () => {
     });
     it('丸角の枠がグリッドから崩れずに出力される', () => {
         const grid = emptyGrid(2);
-        grid[0][0] = '╭'; grid[0][1] = '─'; grid[0][2] = '╮';
-        grid[1][0] = '╰'; grid[1][1] = '─'; grid[1][2] = '╯';
+        grid[0][0] = '╭';
+        grid[0][1] = '─';
+        grid[0][2] = '╮';
+        grid[1][0] = '╰';
+        grid[1][1] = '─';
+        grid[1][2] = '╯';
         const text = gridToText(grid);
         expect(text).toBe('╭─╮' + '\n' + '╰─╯');
         const rendered = convert(text).preview.map((l) => l.text.replace(/[ \u3000]+$/, ''));

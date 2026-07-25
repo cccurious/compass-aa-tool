@@ -62,10 +62,14 @@ export const SupportBanner = ({ visible, onClosePermanently }: SupportBannerProp
             <div className={`support-banner ${visible ? 'show' : ''}`}>
                 <div className="banner-content">
                     <div className="banner-text-wrapper">
-                        <span className={`code-text msg-text ${showingMsg ? 'slide-in' : 'slide-out'}`}>
+                        <span
+                            className={`code-text msg-text ${showingMsg ? 'slide-in' : 'slide-out'}`}
+                        >
                             応援枠が余っていれば是非！
                         </span>
-                        <span className={`code-text target-text ${!showingMsg ? 'slide-in' : 'slide-out'}`}>
+                        <span
+                            className={`code-text target-text ${!showingMsg ? 'slide-in' : 'slide-out'}`}
+                        >
                             応援コード {SUPPORT_CODE}
                         </span>
                     </div>

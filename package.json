@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"tests/**/*.ts\" eslint.config.js"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -37,6 +38,7 @@
     "eslint-plugin-react-refresh": "^0.5.3",
     "fontkit": "^2.0.4",
     "globals": "^17.7.0",
+    "prettier": "^3.9.6",
     "typescript": "~5.6.2",
     "typescript-eslint": "^8.65.0",
     "vite": "^5.4.10",

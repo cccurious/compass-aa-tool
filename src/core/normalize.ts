@@ -11,7 +11,7 @@
  * （URL 無効化フィルタと推定。ASCII 英数・他の記号・半角カナは素通り・削除なし）
  */
 export const COPY_EXPORT_NORMALIZE: ReadonlyMap<string, string> = new Map([
-  ['.', '．'],
-  ['/', '／'],
-  [':', '：'],
+    ['.', '．'],
+    ['/', '／'],
+    [':', '：'],
 ]);

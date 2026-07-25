@@ -25,7 +25,8 @@ export function useZoomPan() {
     const toggleZoom = () => {
         const w = wrapRef.current;
         // いま見ている場所（中心）の比率を保ったまま拡大縮小する
-        const center = w && w.scrollWidth > 0 ? (w.scrollLeft + w.clientWidth / 2) / w.scrollWidth : 0.5;
+        const center =
+            w && w.scrollWidth > 0 ? (w.scrollLeft + w.clientWidth / 2) / w.scrollWidth : 0.5;
         setZoomed((v) => !v);
         // 幅アニメーションの間も毎フレーム追従させる。アニメ後にまとめて合わせると
         // 「別の場所で拡大 → 中央へ跳ぶ」ように見える（実機フィードバック）

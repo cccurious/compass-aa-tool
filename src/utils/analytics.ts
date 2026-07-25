@@ -6,17 +6,17 @@
  * 送信は常にこのヘルパー経由にする。
  */
 const send = (event: string, params: Record<string, unknown> = {}) => {
-  const w = window as unknown as { gtag?: (...args: unknown[]) => void };
-  if (typeof w.gtag === 'function') w.gtag('event', event, params);
+    const w = window as unknown as { gtag?: (...args: unknown[]) => void };
+    if (typeof w.gtag === 'function') w.gtag('event', event, params);
 };
 
 /** SPA のビュー切替を手動でページビューとして送る */
 export const trackView = (view: string) =>
-  send('page_view', {
-    page_title: view,
-    page_location: `${location.origin}${location.pathname}?view=${view}`,
-    page_path: `${location.pathname}?view=${view}`,
-  });
+    send('page_view', {
+        page_title: view,
+        page_location: `${location.origin}${location.pathname}?view=${view}`,
+        page_path: `${location.pathname}?view=${view}`,
+    });
 
 /**
  * コピー＝このツールの完了地点。どちらの作り方が使われているかを見る。
@@ -24,22 +24,22 @@ export const trackView = (view: string) =>
  * 「その状態のまま完了したか」を 1 イベントで持たせる）。
  */
 export const trackCopy = (params: {
-  source: 'dot' | 'aa';
-  bytes: number;
-  lines: number;
-  over_limit: boolean;
-  had_removed_chars: boolean;
-  had_unknown_width: boolean;
+    source: 'dot' | 'aa';
+    bytes: number;
+    lines: number;
+    over_limit: boolean;
+    had_removed_chars: boolean;
+    had_unknown_width: boolean;
 }) => send('copy_aa', params);
 
 /** ドット打ちからテキスト編集へ送った回数 */
 export const trackSendToConverter = (params: { lines: number }) =>
-  send('send_to_converter', params);
+    send('send_to_converter', params);
 
 /** パレットへの文字追加（どんな文字が求められているかの手掛かり） */
 export const trackPaletteAdd = (params: { added: number; skipped: number }) =>
-  send('palette_add', params);
+    send('palette_add', params);
 
 /** 応援コードのコピー（BM チェッカーと同じ導線の効果測定） */
 export const trackSupportAction = (params: { action_type: 'copy_code' }) =>
-  send('support_action', params);
+    send('support_action', params);

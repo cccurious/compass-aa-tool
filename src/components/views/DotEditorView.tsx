@@ -43,22 +43,22 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                     ref={wrapRef}
                     onScroll={updateThumb}
                 >
-                <div
-                    className="dot-grid"
-                    style={{ width: zoomed ? '200%' : '100%' }}
-                    onPointerDown={onPointerDown}
-                    onPointerMove={onPointerMove}
-                >
-                    {grid.map((row, r) => (
-                        <div key={r} className="dot-grid-row">
-                            {row.map((cell, c) => (
-                                <div key={c} className="dot-cell" data-cell={`${r},${c}`}>
-                                    {cell}
-                                </div>
-                            ))}
-                        </div>
-                    ))}
-                </div>
+                    <div
+                        className="dot-grid"
+                        style={{ width: zoomed ? '200%' : '100%' }}
+                        onPointerDown={onPointerDown}
+                        onPointerMove={onPointerMove}
+                    >
+                        {grid.map((row, r) => (
+                            <div key={r} className="dot-grid-row">
+                                {row.map((cell, c) => (
+                                    <div key={c} className="dot-cell" data-cell={`${r},${c}`}>
+                                        {cell}
+                                    </div>
+                                ))}
+                            </div>
+                        ))}
+                    </div>
                 </div>
                 {zoomed && (
                     <div className="dot-scrollbar" aria-hidden="true">
@@ -72,13 +72,19 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                     >
                         {zoomed ? '等倍にもどす' : '拡大'}
                     </button>
-                    <button className="bulk-btn" onClick={addRow} disabled={grid.length >= MAX_ROWS}>
+                    <button
+                        className="bulk-btn"
+                        onClick={addRow}
+                        disabled={grid.length >= MAX_ROWS}
+                    >
                         行を追加
                     </button>
                     <button className="bulk-btn" onClick={removeRow} disabled={grid.length <= 1}>
                         行を削除
                     </button>
-                    <button className="bulk-btn" onClick={clearAll}>全消去</button>
+                    <button className="bulk-btn" onClick={clearAll}>
+                        全消去
+                    </button>
                 </div>
             </section>
 
@@ -96,10 +102,7 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
             )}
 
             {result && (
-                <button
-                    className="secondary-btn"
-                    onClick={() => onSendToConverter(text)}
-                >
+                <button className="secondary-btn" onClick={() => onSendToConverter(text)}>
                     テキストで細かく調整する
                 </button>
             )}

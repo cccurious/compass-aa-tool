@@ -14,21 +14,21 @@ export type DotGrid = string[][];
 export const GRID_COLS = 20;
 
 export function emptyGrid(rows: number): DotGrid {
-  return Array.from({ length: rows }, () => Array(GRID_COLS).fill(''));
+    return Array.from({ length: rows }, () => Array(GRID_COLS).fill(''));
 }
 
 export function gridToText(grid: DotGrid): string {
-  const lines = grid.map((row) => {
-    let lastFilled = -1;
-    row.forEach((cell, i) => {
-      if (cell !== '') lastFilled = i;
+    const lines = grid.map((row) => {
+        let lastFilled = -1;
+        row.forEach((cell, i) => {
+            if (cell !== '') lastFilled = i;
+        });
+        return row
+            .slice(0, lastFilled + 1)
+            .map((cell) => (cell === '' ? '　' : cell))
+            .join('');
     });
-    return row
-      .slice(0, lastFilled + 1)
-      .map((cell) => (cell === '' ? '　' : cell))
-      .join('');
-  });
-  // 末尾の全空行を削る
-  while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
-  return lines.join('\n');
+    // 末尾の全空行を削る
+    while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
+    return lines.join('\n');
 }

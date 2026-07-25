@@ -11,16 +11,15 @@ import { useDotStore } from '../../../store/useDotStore';
  *   頼みにせず、動かした側が呼ぶ。プログラム的な scrollLeft 変更では発火
  *   タイミングが環境依存のため）
  */
-export function useCanvasGestures(
-    wrapRef: RefObject<HTMLDivElement>,
-    updateThumb: () => void,
-) {
+export function useCanvasGestures(wrapRef: RefObject<HTMLDivElement>, updateThumb: () => void) {
     const { beginStroke, paint, endStroke, setCellValue } = useDotStore();
     const paintingRef = useRef(false);
     const pointersRef = useRef(new Map<number, { x: number; y: number }>());
     const panRef = useRef<{ x: number; scrollLeft: number } | null>(null);
     // ストローク開始セルの元の値。2 本指パンの 1 本目が塗ってしまったぶんを戻すため
-    const strokeStartRef = useRef<{ row: number; col: number; prev: string; at: number } | null>(null);
+    const strokeStartRef = useRef<{ row: number; col: number; prev: string; at: number } | null>(
+        null,
+    );
 
     // 指の記録の掃除は window で行う（グリッド上のハンドラだけだと、指がグリッドの
     // 外で離れたときに pointerup を取りこぼして記録が残留し、以後ずっと 2 本指と
@@ -95,8 +94,7 @@ export function useCanvasGestures(
             const xs = [...pointersRef.current.values()].map((p) => p.x);
             const mid = xs.reduce((a, b) => a + b, 0) / xs.length;
             if (wrapRef.current) {
-                wrapRef.current.scrollLeft =
-                    panRef.current.scrollLeft - (mid - panRef.current.x);
+                wrapRef.current.scrollLeft = panRef.current.scrollLeft - (mid - panRef.current.x);
             }
             updateThumb();
             return;

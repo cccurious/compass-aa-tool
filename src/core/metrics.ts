@@ -55,16 +55,16 @@ export const MAX_MESSAGE_BYTES = 512;
  *   未確認文字を含む行は保険を厚くして 3 個
  */
 export const MARGIN = {
-  BREAK_FIRE: 0.3,
-  LINE_KEEP: 0.5,
-  FULL_COLUMN_KEEP: 1,
-  TAIL_KNOWN: 1,
-  TAIL_UNKNOWN: 3,
+    BREAK_FIRE: 0.3,
+    LINE_KEEP: 0.5,
+    FULL_COLUMN_KEEP: 1,
+    TAIL_KNOWN: 1,
+    TAIL_UNKNOWN: 3,
 } as const;
 
 /** UTF-8 でのバイト長（実機の上限判定はこの値で行う） */
 export function utf8ByteLength(text: string): number {
-  return new TextEncoder().encode(text).length;
+    return new TextEncoder().encode(text).length;
 }
 
 /**
@@ -75,22 +75,22 @@ export function utf8ByteLength(text: string): number {
  *   （半角 0.5 / 全角 1.0）に落ちることの実証。BIZ の 0.311 は不採用
  */
 const DEVICE_OVERRIDES: Record<string, number> = {
-  '´': 1.0,
-  _: 0.5,
-  // ∥(U+2225): 2026-07-25 ラウンド 3 で 1 行に 20 個＋∧ が 10 個入ることから 0.5 と確定
-  '∥': 0.5,
-  // R8 ピッチ実測（2026-07-25・±0.05 程度）。英字は BIZ 一致だが記号類は
-  // BIZ とも 0.5 固定とも異なる独自値 ＝ 真のアトラスフォントは UD 新ゴ系の
-  // 別物と推定（LETS 連続性説と整合）。) は ( の対称と推定（未実測）
-  "'": 0.22,
-  '`': 0.35,
-  '|': 0.29,
-  '(': 0.32,
-  ')': 0.32,
-  '=': 0.54,
-  '~': 0.59,
-  '^': 0.655,
-  O: 0.8,
+    '´': 1.0,
+    _: 0.5,
+    // ∥(U+2225): 2026-07-25 ラウンド 3 で 1 行に 20 個＋∧ が 10 個入ることから 0.5 と確定
+    '∥': 0.5,
+    // R8 ピッチ実測（2026-07-25・±0.05 程度）。英字は BIZ 一致だが記号類は
+    // BIZ とも 0.5 固定とも異なる独自値 ＝ 真のアトラスフォントは UD 新ゴ系の
+    // 別物と推定（LETS 連続性説と整合）。) は ( の対称と推定（未実測）
+    "'": 0.22,
+    '`': 0.35,
+    '|': 0.29,
+    '(': 0.32,
+    ')': 0.32,
+    '=': 0.54,
+    '~': 0.59,
+    '^': 0.655,
+    O: 0.8,
 };
 
 /** BIZ UDPGothic 400 の実測幅（scripts/extract-metrics.mjs で生成・あ=1.0 正規化） */
@@ -103,8 +103,8 @@ const BIZ_MISSING = new Set<string>(biz.missing);
  * 層 3（全角フォールバック・未確認扱い）に回す。
  */
 const HALF_RANGES: [number, number][] = [
-  [0x0020, 0x007e], // ASCII
-  [0xff61, 0xff9f], // 半角カタカナ
+    [0x0020, 0x007e], // ASCII
+    [0xff61, 0xff9f], // 半角カタカナ
 ];
 
 /**
@@ -112,18 +112,17 @@ const HALF_RANGES: [number, number][] = [
  * 混入に気づけないため（実例: 豈 のつもりで U+8C48 を書き私用領域まで全角扱い）、
  * 必ず \u エスケープで書くこと。
  */
-const FULLWIDTH_RE =
-  /[ᄀ-ᅟ⺀-〾ぁ-㏿㐀-䶿一-鿿ꀀ-꓏가-힣豈-﫿︰-﹏＀-｠￠-￦]/;
+const FULLWIDTH_RE = /[ᄀ-ᅟ⺀-〾ぁ-㏿㐀-䶿一-鿿ꀀ-꓏가-힣豈-﫿︰-﹏＀-｠￠-￦]/;
 
 /**
  * 全角フォールバック推定クラス（層 3）: 技術記号・図形・ギリシャ・キリル等。
  * ⌒（U+2312）は実機で 1.0 動作を確認済み。他は 1.0 と推定（未実測）。
  */
 const FALLBACK_RANGES: [number, number][] = [
-  [0x0370, 0x03ff], // ギリシャ（ω 等）
-  [0x0400, 0x045f], // キリル（Д 等）
-  [0x2100, 0x23ff], // 技術記号（⌒ 等）
-  [0x2460, 0x27bf], // 囲み数字・罫線・図形・記号
+    [0x0370, 0x03ff], // ギリシャ（ω 等）
+    [0x0400, 0x045f], // キリル（Д 等）
+    [0x2100, 0x23ff], // 技術記号（⌒ 等）
+    [0x2460, 0x27bf], // 囲み数字・罫線・図形・記号
 ];
 
 /**
@@ -132,25 +131,25 @@ const FALLBACK_RANGES: [number, number][] = [
  * ※ § ¶ ± × ÷ † ‡ ‰ ′ ″ ‥ … 〝 〟 は推定 0.5 だったが実機は 1.0 だった。
  */
 const VERIFIED_FULLWIDTH = new Set(
-  Array.from(
-    '⌒´' +
-      '∴∵≒≠≡≦≧⊂⊃⊆⊇⊥∽≪≫∟⊿⇔↕' + // B 数学記号2
-      'αβγδεζηθικλμνξοπρστω' + // D ギリシャ小文字
-      '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳' + // G 囲み数字
-      '「」『』【】〈〉《》〔〕〜〆〇々〃〒・※' + // H 日本語の約物
-      '＿＾｀＼｜／～＝＋－＊＃＠＆％＄！？：；' + // I 全角記号
-      'ぁぃぅぇぉっゃゅょゎァィゥェォヵヶゝゞ゛' + // J 小書き・繰り返し
-      'ⅠⅡⅢⅣⅤⅵⅶⅷⅸⅹ℡№㈱㈲㍻㎜㎝㎞㎏㎡' + // K 機種依存・単位
-      '§¶†‡‰′″‥…〝〟±×÷∝∮⇄⇅' + // L 欧文記号・約物
-      '∀∂∃∇∈∋∏∑√∝' + // A-1
-      '∞∠∧∨∩∪∫∬∮' + // A-2（∥ は 0.5 と判明したので除外）
-      '←↑→↓↔↕↖↗↘↙' + // C-1
-      '⇒⇐⇆⇦⇨' + // C-2（⇑⇓ は実機で消えるため除外）
-      '★☆♀♂♪♭♯♠♣♥' + // F-1
-      '♦☀☁☂☃☎☜☞✓' + // F-2（✕ は実機で消えるため除外）
-      'ΞΠ' + // E-1（単体なら正常。隣接時のみ * に置換される）
-      'ΑΒΓΔΘΛΣΦΨΩДЖЗИЛПФЯ', // E-2 ギリシャ大文字・キリル
-  ),
+    Array.from(
+        '⌒´' +
+            '∴∵≒≠≡≦≧⊂⊃⊆⊇⊥∽≪≫∟⊿⇔↕' + // B 数学記号2
+            'αβγδεζηθικλμνξοπρστω' + // D ギリシャ小文字
+            '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳' + // G 囲み数字
+            '「」『』【】〈〉《》〔〕〜〆〇々〃〒・※' + // H 日本語の約物
+            '＿＾｀＼｜／～＝＋－＊＃＠＆％＄！？：；' + // I 全角記号
+            'ぁぃぅぇぉっゃゅょゎァィゥェォヵヶゝゞ゛' + // J 小書き・繰り返し
+            'ⅠⅡⅢⅣⅤⅵⅶⅷⅸⅹ℡№㈱㈲㍻㎜㎝㎞㎏㎡' + // K 機種依存・単位
+            '§¶†‡‰′″‥…〝〟±×÷∝∮⇄⇅' + // L 欧文記号・約物
+            '∀∂∃∇∈∋∏∑√∝' + // A-1
+            '∞∠∧∨∩∪∫∬∮' + // A-2（∥ は 0.5 と判明したので除外）
+            '←↑→↓↔↕↖↗↘↙' + // C-1
+            '⇒⇐⇆⇦⇨' + // C-2（⇑⇓ は実機で消えるため除外）
+            '★☆♀♂♪♭♯♠♣♥' + // F-1
+            '♦☀☁☂☃☎☜☞✓' + // F-2（✕ は実機で消えるため除外）
+            'ΞΠ' + // E-1（単体なら正常。隣接時のみ * に置換される）
+            'ΑΒΓΔΘΛΣΦΨΩДЖЗИЛПФЯ', // E-2 ギリシャ大文字・キリル
+    ),
 );
 
 /**
@@ -171,22 +170,22 @@ export const FILTERED_SEQUENCES = ['ΞΠ'];
  * 「7 個目まで 1 行・8 個目の ━ だけ折り返し」＝全て 1.0 と確定
  */
 const FALLBACK_VERIFIED_RANGES: [number, number][] = [
-  [0x2500, 0x257f], // 罫線素片
-  // ブロック要素: 2026-07-25 █▌░▒▓×10 が 20/20/10 の 3 行に折り返し＝全て 1.0
-  // （▌ は見た目半分だが送り幅は全角）
-  [0x2580, 0x259f],
-  // 幾何学図形: 2026-07-25 あ×13+■□●○◆◇▲△ プローブで △ だけ折り返し＝全て 1.0
-  [0x25a0, 0x25ff],
+    [0x2500, 0x257f], // 罫線素片
+    // ブロック要素: 2026-07-25 █▌░▒▓×10 が 20/20/10 の 3 行に折り返し＝全て 1.0
+    // （▌ は見た目半分だが送り幅は全角）
+    [0x2580, 0x259f],
+    // 幾何学図形: 2026-07-25 あ×13+■□●○◆◇▲△ プローブで △ だけ折り返し＝全て 1.0
+    [0x25a0, 0x25ff],
 ];
 
 const inRanges = (cp: number, ranges: [number, number][]) =>
-  ranges.some(([lo, hi]) => cp >= lo && cp <= hi);
+    ranges.some(([lo, hi]) => cp >= lo && cp <= hi);
 
 export interface CharClass {
-  /** 全角 1 文字 = 1.0 とした送り幅 */
-  width: number;
-  /** 実測または確定クラス由来で、推定に頼っていないか */
-  verified: boolean;
+    /** 全角 1 文字 = 1.0 とした送り幅 */
+    width: number;
+    /** 実測または確定クラス由来で、推定に頼っていないか */
+    verified: boolean;
 }
 
 /**
@@ -199,32 +198,34 @@ export interface CharClass {
  * 半角クラス（BIZ 実測）→ 全角クラス（固定 1.0）→ フォールバック推定。
  */
 export function classifyChar(ch: string): CharClass {
-  const override = DEVICE_OVERRIDES[ch];
-  if (override !== undefined) return { width: override, verified: true };
-  // ※ § ± … などクラス分けでは 0.5 と誤推定される文字を含む
-  if (VERIFIED_FULLWIDTH.has(ch)) return { width: 1.0, verified: true };
+    const override = DEVICE_OVERRIDES[ch];
+    if (override !== undefined) return { width: override, verified: true };
+    // ※ § ± … などクラス分けでは 0.5 と誤推定される文字を含む
+    if (VERIFIED_FULLWIDTH.has(ch)) return { width: 1.0, verified: true };
 
-  const cp = ch.codePointAt(0)!;
-  if (inRanges(cp, FALLBACK_VERIFIED_RANGES)) return { width: 1.0, verified: true };
+    const cp = ch.codePointAt(0)!;
+    if (inRanges(cp, FALLBACK_VERIFIED_RANGES)) return { width: 1.0, verified: true };
 
-  if (inRanges(cp, HALF_RANGES)) {
-    const w = BIZ_WIDTHS[ch];
-    if (w !== undefined) return { width: w, verified: true };
-    // 収録漏れはフォールバックの半角固定幅に落ちる（_ で実証）
-    return BIZ_MISSING.has(ch) ? { width: 0.5, verified: false } : { width: 1.0, verified: true };
-  }
+    if (inRanges(cp, HALF_RANGES)) {
+        const w = BIZ_WIDTHS[ch];
+        if (w !== undefined) return { width: w, verified: true };
+        // 収録漏れはフォールバックの半角固定幅に落ちる（_ で実証）
+        return BIZ_MISSING.has(ch)
+            ? { width: 0.5, verified: false }
+            : { width: 1.0, verified: true };
+    }
 
-  if (ch === '　') return { width: 1.0, verified: true };
-  if (FULLWIDTH_RE.test(ch)) return { width: 1.0, verified: true };
+    if (ch === '　') return { width: 1.0, verified: true };
+    if (FULLWIDTH_RE.test(ch)) return { width: 1.0, verified: true };
 
-  // 層 3 の未実測（ω Д 等）。1.0 と推定するが確認済みではないので警告対象
-  if (inRanges(cp, FALLBACK_RANGES)) return { width: 1.0, verified: false };
-  return { width: 0.5, verified: false };
+    // 層 3 の未実測（ω Д 等）。1.0 と推定するが確認済みではないので警告対象
+    if (inRanges(cp, FALLBACK_RANGES)) return { width: 1.0, verified: false };
+    return { width: 0.5, verified: false };
 }
 
 /** 1 文字の幅（全角=1.0 単位）。実測できていない文字は推定値 */
 export function charWidth(ch: string): number {
-  return classifyChar(ch).width;
+    return classifyChar(ch).width;
 }
 
 /**
@@ -232,12 +233,12 @@ export function charWidth(ch: string): number {
  * false の文字は推定幅になり、折り返し位置が実機とずれる可能性がある。
  */
 export function isKnownWidth(ch: string): boolean {
-  return classifyChar(ch).verified;
+    return classifyChar(ch).verified;
 }
 
 /** 文字列の幅合計（サロゲートペア対応のため Array.from） */
 export function textWidth(text: string): number {
-  let w = 0;
-  for (const ch of Array.from(text)) w += charWidth(ch);
-  return w;
+    let w = 0;
+    for (const ch of Array.from(text)) w += charWidth(ch);
+    return w;
 }

@@ -20,9 +20,7 @@ export const PalettePanel = ({ showToast }: PalettePanelProps) => {
     // 最近使った文字を先頭に。「追加分」は空でも常に出す
     // （タブを開くと追加用の UI が現れる、という入口を兼ねるため）
     const tabs = [
-        ...(recentChars.length > 0
-            ? [{ id: 'recent', label: '最近', chars: recentChars }]
-            : []),
+        ...(recentChars.length > 0 ? [{ id: 'recent', label: '最近', chars: recentChars }] : []),
         ...PALETTE_CATEGORIES,
         { id: 'custom', label: '追加分', chars: customPalette },
     ];
@@ -90,53 +88,52 @@ export const PalettePanel = ({ showToast }: PalettePanelProps) => {
                 )}
             </div>
             {shown.id === 'custom' && (
-            <div className="dot-add">
-                {/* 説明はラベルとして常に見える位置に置く。placeholder に入れると
+                <div className="dot-add">
+                    {/* 説明はラベルとして常に見える位置に置く。placeholder に入れると
                     狭い画面で見切れて何を入れる欄か分からなくなる */}
-                <label className="dot-add-label" htmlFor="palette-add">
-                    パレットに新しい文字を追加
-                </label>
-                <input
-                    id="palette-add"
-                    className="dot-add-input"
-                    value={charInput}
-                    onChange={(e) => setCharInput(e.target.value)}
-                    placeholder="文字を入力して「追加」を押す（文章でも可）"
-                />
-                <div className="dot-add-actions">
-                    <button className="bulk-btn" onClick={handleAddChars}>追加</button>
-                    <button className="bulk-btn" onClick={() => setShowSuggest((v) => !v)}>
-                        {showSuggest ? '候補を閉じる' : '候補から選ぶ'}
-                    </button>
-                    {customPalette.length > 0 && (
-                        <button
-                            className="bulk-btn"
-                            onClick={clearCustom}
-                        >
-                            追加分を消去（{customPalette.length}）
+                    <label className="dot-add-label" htmlFor="palette-add">
+                        パレットに新しい文字を追加
+                    </label>
+                    <input
+                        id="palette-add"
+                        className="dot-add-input"
+                        value={charInput}
+                        onChange={(e) => setCharInput(e.target.value)}
+                        placeholder="文字を入力して「追加」を押す（文章でも可）"
+                    />
+                    <div className="dot-add-actions">
+                        <button className="bulk-btn" onClick={handleAddChars}>
+                            追加
                         </button>
-                    )}
-                </div>
-                {showSuggest && (
-                    <div className="dot-palette dot-suggest">
-                        {suggestions.map((ch) => (
-                            <button
-                                key={ch}
-                                className="dot-palette-btn"
-                                onClick={() => {
-                                    addPaletteChars(ch);
-                                    showToast(`${ch} を追加しました`);
-                                }}
-                            >
-                                {ch}
+                        <button className="bulk-btn" onClick={() => setShowSuggest((v) => !v)}>
+                            {showSuggest ? '候補を閉じる' : '候補から選ぶ'}
+                        </button>
+                        {customPalette.length > 0 && (
+                            <button className="bulk-btn" onClick={clearCustom}>
+                                追加分を消去（{customPalette.length}）
                             </button>
-                        ))}
-                        {suggestions.length === 0 && (
-                            <span className="dot-suggest-empty">候補は全て追加済みです</span>
                         )}
                     </div>
-                )}
-            </div>
+                    {showSuggest && (
+                        <div className="dot-palette dot-suggest">
+                            {suggestions.map((ch) => (
+                                <button
+                                    key={ch}
+                                    className="dot-palette-btn"
+                                    onClick={() => {
+                                        addPaletteChars(ch);
+                                        showToast(`${ch} を追加しました`);
+                                    }}
+                                >
+                                    {ch}
+                                </button>
+                            ))}
+                            {suggestions.length === 0 && (
+                                <span className="dot-suggest-empty">候補は全て追加済みです</span>
+                            )}
+                        </div>
+                    )}
+                </div>
             )}
         </section>
     );

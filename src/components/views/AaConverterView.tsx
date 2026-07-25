@@ -34,7 +34,9 @@ export const AaConverterView = ({ input, setInput, onCopied }: AaConverterViewPr
                     spellCheck={false}
                 />
                 <div className="bulk-actions">
-                    <button className="bulk-btn" onClick={() => setInput('')}>クリア</button>
+                    <button className="bulk-btn" onClick={() => setInput('')}>
+                        クリア
+                    </button>
                 </div>
             </section>
 
