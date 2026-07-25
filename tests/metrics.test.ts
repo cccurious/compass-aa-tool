@@ -40,6 +40,10 @@ describe('実機校正済みの 3 層モデル', () => {
     it('推定 0.5 だった約物・欧文記号は実機 1.0（一括検証 H/L）', () => {
         for (const ch of '※§¶±×÷†‡‰′″‥…〝〟') expect(textWidth(ch)).toBe(1.0);
     });
+    it('ஐ は削除されず幅 0（2026-07-25 実測。見えない終端ガード候補）', () => {
+        expect(textWidth('ஐ')).toBe(0);
+        expect(classifyChar('ஐ').verified).toBe(true);
+    });
 });
 
 describe('分類の内部整合（食い違いの門番）', () => {
