@@ -222,8 +222,11 @@ describe('一括検証で確定した幅（2026-07-25 プローブ A〜N）', ()
         expect(convert('※§±…〆〇\nあ').unknownWidthLines).toEqual([]);
         expect(convert('αβγ①②③\nあ').unknownWidthLines).toEqual([]);
     });
-    it('未検証の文字には警告が残る（キリル大文字などは未実測）', () => {
-        expect(convert('ДЖЗИ\nあ').unknownWidthLines.length).toBe(1);
+    it('ギリシャ大文字・キリルも確定（E-2）', () => {
+        expect(convert('ΑΒΓΔЖЗИЯ\nあ').unknownWidthLines).toEqual([]);
+    });
+    it('未検証の文字には警告が残る（ルーン文字は検証対象外）', () => {
+        expect(convert(String.fromCharCode(0x16a0) + '\nあ').unknownWidthLines.length).toBe(1);
     });
 });
 
