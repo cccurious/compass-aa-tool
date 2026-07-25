@@ -79,9 +79,11 @@ export function convert(input: string): ConvertResult {
       // 全角列ごと次行へ転落する事故を防ぐ（2026-07-25 レトリバー ´´ 行ずれの対策）
       const nFull = Math.max(0, Math.floor(LIMIT_SAFE - contentW - HALF_SPACE_W) - 1);
       const used = contentW + HALF_SPACE_W + nFull;
-      // +3 は端数＋幅誤差の安全マージン（約 0.7 字分）。
+      // 端数マージン: 幅が全て実測済みの行は +1 で足りる。幅未確認の文字を
+      // 含む行だけ +3（約 0.7 字分）の保険を残す（文字数節約・2026-07-25）。
       // 超過行（警告済み）は詰め物なしで自力折り返しに任せる
-      const nHalf = Math.max(0, Math.ceil((LIMIT_FORCE - used) / HALF_SPACE_W) + 3);
+      const margin = unknown.length > 0 ? 3 : 1;
+      const nHalf = Math.max(0, Math.ceil((LIMIT_FORCE - used) / HALF_SPACE_W) + margin);
       padding = ' ' + '　'.repeat(nFull) + ' '.repeat(nHalf);
     }
 
