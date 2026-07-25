@@ -32,8 +32,17 @@ const SUGGEST =
     'αβγδεπρστωΑΔΘΣΦΨΩДЖ' +
     '①②③④⑤⑥⑦⑧⑨⑩';
 
+/**
+ * 既に実機で「半角になる／見えない」と確定した文字は検査対象から外す
+ * （src/core/metrics.ts の DEVICE_VARIANT_CHARS と同じ内容）。
+ * 除外しておかないと、その行が必ず崩れて他の文字の判定を隠してしまう。
+ */
+const KNOWN_BAD = new Set(Array.from('▀░▒▓▘▝▖▗▚▞▛▜▙▟↕□═║╔╗╚╝╠╣╦╩╬'));
+
 // ■ は目印に使うので検査対象から外す（重複を除いて順序は保つ）
-const chars = [...new Set(Array.from(PRESET + SUGGEST))].filter((c) => c !== '■');
+const chars = [...new Set(Array.from(PRESET + SUGGEST))].filter(
+    (c) => c !== '■' && !KNOWN_BAD.has(c),
+);
 
 const lines = [];
 for (let i = 0; i < chars.length; i += 10) {
