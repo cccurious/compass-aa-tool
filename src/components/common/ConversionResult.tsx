@@ -39,6 +39,12 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
     // 入力欄の打鍵段階には別の文字数制限（観測 184）もあるため、迫ったら注意書き
     const nearInputCap =
         !over && Array.from(result.output).length > INPUT_FIELD_CHARS_OBSERVED.fullWidth - 4;
+    // 超過の主因が AA 内の半角スペース（1 個 16 換算）のときは、それが分かる内訳を添える
+    const spaceCount = Array.from(result.output).filter((c) => c === ' ').length;
+    const spaceHint =
+        over && spaceCount > 0
+            ? `（半角スペース ${spaceCount} 個が全角 ${spaceCount * 16} 文字ぶんを消費）`
+            : '';
     return (
         <>
             <section className="card-inputs">
@@ -100,12 +106,12 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
 
             <div className={`char-count ${over ? 'over' : ''}`}>
                 {over
-                    ? `上限超過（${units} / ${MESSAGE_UNIT_LIMIT}）— 全角 ${units - MESSAGE_UNIT_LIMIT} 文字ぶん減らしてください`
+                    ? `上限超過（${units} / ${MESSAGE_UNIT_LIMIT}）— 全角 ${units - MESSAGE_UNIT_LIMIT} 文字ぶん減らしてください${spaceHint}`
                     : nearInputCap
-                      ? `残り 全角 ${MESSAGE_UNIT_LIMIT - units} 文字ぶん（${units} / ${MESSAGE_UNIT_LIMIT}）※文字数も入力欄の上限付近です`
+                      ? `残り 全角 ${MESSAGE_UNIT_LIMIT - units} 文字ぶん（${units} / ${MESSAGE_UNIT_LIMIT}）※文字数がゲームの入力欄の上限（約${INPUT_FIELD_CHARS_OBSERVED.fullWidth}字）に近く、貼り付け時に切れる可能性があります`
                       : `残り 全角 ${MESSAGE_UNIT_LIMIT - units} 文字ぶん（${units} / ${MESSAGE_UNIT_LIMIT}）`}
                 <HelpTooltip
-                    text={`1メッセージの上限は全角換算で ${MESSAGE_UNIT_LIMIT} 文字ぶんです。ほとんどの文字は 1 文字ぶんですが、改行の代わりに入る半角スペースだけは 1 個で全角 16 文字ぶんを消費します。超えたぶんは送信時に末尾が切り捨てられます。`}
+                    text={`1メッセージの上限は全角換算で ${MESSAGE_UNIT_LIMIT} 文字ぶんです。ほとんどの文字は全半角問わず 1 文字ぶんですが、半角スペースだけは 1 個で全角 16 文字ぶんも消費されます（AA の中の半角スペースも同じ）。このツールの自動調整は半角スペースをできるだけ使いません。超えたぶんは送信時に末尾が切り捨てられます。`}
                 />
             </div>
             <button className="primary-btn" onClick={onCopy}>

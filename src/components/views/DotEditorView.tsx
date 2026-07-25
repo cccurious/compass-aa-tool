@@ -35,7 +35,7 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                     キャンバス（{GRID_COLS} × {grid.length}）
                     {zoomed && <span className="zoom-badge">2倍表示中</span>}
                     <HelpTooltip
-                        text={`横はチャット1行に収まる${GRID_COLS}マス固定です。縦は${MAX_ROWS}行まで増やせますが、絵が細かいと途中で長さの上限に達します。スマホでマスが小さいときは「拡大」を押してください（拡大中は2本指で横スクロールできます）。`}
+                        text={`横はチャット1行に収まる${GRID_COLS}マス固定です。縦は${MAX_ROWS}行まで増やせますが、長さの上限があるため実際に送れるのは13〜14行が目安です。スマホでマスが小さいときは「拡大」を押してください（拡大中は2本指で横スクロールできます）。`}
                     />
                 </h3>
                 <div
