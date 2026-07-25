@@ -180,14 +180,19 @@ export const FILTERED_SEQUENCES = ['ΞΠ'];
 
 /**
  * **端末によって見え方が変わる文字**（2026-07-26 実機確認）。
- * 文字自体は消えないが、iPhone では以下のように描かれ AA が崩れる:
+ * Android では全角幅で揃うが iPhone では崩れる。文字自体は消えない。
  * - `▀░▒▓`: 半分の幅で表示される
  * - `▘▝▖▗▚▞▛▜▙▟`（4 分割ブロック）: 幅 0 で完全に見えない
+ * - `↕`: 半分の幅（`↑↓↔` は全角のまま ＝ 同じ矢印でも 1 文字ずつ違う）
  *
  * 送る端末と見る端末が違えば結果も変わるため、変換時に警告する。
  * パレットからは撤去済み（core/palette.ts の WITHDRAWN_CHARS）。
+ *
+ * **PC のフォントからは予測できない**（Consolas は ●↑↓↔↕ を全て狭いと
+ * 判定するが実機で崩れるのは ↕ だけ、Segoe UI は ↕ を全角と判定する）。
+ * 判定は必ず実機プローブで行う（scripts/gen-width-batch.mjs）。
  */
-export const DEVICE_VARIANT_CHARS = new Set(Array.from('▀░▒▓▘▝▖▗▚▞▛▜▙▟'));
+export const DEVICE_VARIANT_CHARS = new Set(Array.from('▀░▒▓▘▝▖▗▚▞▛▜▙▟↕'));
 
 /**
  * 実機で 1.0 動作を範囲ごと確認済みのフォールバック領域。
