@@ -462,6 +462,9 @@ body {
 @media (max-width: 640px) {
     .dot-zoom-btn { display: inline-block; }
 }
+/* アンドゥだけ左端へ寄せる（右側の行操作・全消去と役割が違うことを位置で示す） */
+.dot-undo-btn { margin-right: auto; }
+.dot-undo-btn:disabled { opacity: 0.4; cursor: default; }
 .dot-grid-row {
     display: grid;
     /* 20 = GRID_COLS（src/core/grid.ts）。列数を変えるときは両方まとめて */

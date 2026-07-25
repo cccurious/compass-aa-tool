@@ -12,14 +12,12 @@ import { useDotStore } from '../../../store/useDotStore';
  *   タイミングが環境依存のため）
  */
 export function useCanvasGestures(wrapRef: RefObject<HTMLDivElement>, updateThumb: () => void) {
-    const { beginStroke, paint, endStroke, setCellValue } = useDotStore();
+    const { beginStroke, paint, endStroke, undo } = useDotStore();
     const paintingRef = useRef(false);
     const pointersRef = useRef(new Map<number, { x: number; y: number }>());
     const panRef = useRef<{ x: number; scrollLeft: number } | null>(null);
-    // ストローク開始セルの元の値。2 本指パンの 1 本目が塗ってしまったぶんを戻すため
-    const strokeStartRef = useRef<{ row: number; col: number; prev: string; at: number } | null>(
-        null,
-    );
+    // ストローク開始時刻。2 本指パンの 1 本目が塗ってしまったぶんを戻す判定用
+    const strokeStartAtRef = useRef<number | null>(null);
 
     // 指の記録の掃除は window で行う（グリッド上のハンドラだけだと、指がグリッドの
     // 外で離れたときに pointerup を取りこぼして記録が残留し、以後ずっと 2 本指と
@@ -61,12 +59,13 @@ export function useCanvasGestures(wrapRef: RefObject<HTMLDivElement>, updateThum
             paintingRef.current = false;
             endStroke();
             // パンのつもりでも 1 本目がセルを塗ってしまっている。
-            // 直後（300ms 以内）ならその 1 マスを元に戻す
-            const s0 = strokeStartRef.current;
-            if (s0 && Date.now() - s0.at < 300) {
-                setCellValue(s0.row, s0.col, s0.prev);
+            // 直後（300ms 以内）ならストロークごとアンドゥで戻す
+            // （ドラッグで複数マス塗れていても丸ごと戻る。300ms を超えていたら
+            // 描画の意思とみなして残す＝描き終えた指を置いたままパンする人を守る）
+            if (strokeStartAtRef.current !== null && Date.now() - strokeStartAtRef.current < 300) {
+                undo();
             }
-            strokeStartRef.current = null;
+            strokeStartAtRef.current = null;
             const xs = [...pointersRef.current.values()].map((p) => p.x);
             panRef.current = {
                 x: xs.reduce((a, b) => a + b, 0) / xs.length,
@@ -76,12 +75,7 @@ export function useCanvasGestures(wrapRef: RefObject<HTMLDivElement>, updateThum
         }
         const pos = cellAt(e.clientX, e.clientY);
         if (!pos) return;
-        strokeStartRef.current = {
-            row: pos[0],
-            col: pos[1],
-            prev: useDotStore.getState().grid[pos[0]][pos[1]],
-            at: Date.now(),
-        };
+        strokeStartAtRef.current = Date.now();
         paintingRef.current = true;
         beginStroke(pos[0], pos[1]);
     };

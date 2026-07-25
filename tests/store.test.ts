@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useDotStore, MAX_CUSTOM_CHARS } from '../src/store/useDotStore';
 import { SUGGEST_CHARS } from '../src/core/palette';
+import { emptyGrid } from '../src/core/grid';
 
 describe('パレット追加（新規優先の押し出し）', () => {
     beforeEach(() => {
@@ -26,5 +27,52 @@ describe('パレット追加（新規優先の押し出し）', () => {
         expect(r.added).toEqual(['●']);
         expect(r.skipped).toEqual(['a', 'b', 'c']);
         expect(r.evicted).toHaveLength(0);
+    });
+});
+
+describe('アンドゥ（ストローク単位の履歴）', () => {
+    beforeEach(() => {
+        useDotStore.setState({ grid: emptyGrid(3), history: [], brush: '█', strokeErase: null });
+    });
+    it('ストローク（begin＋ドラッグ paint）は 1 回のアンドゥで丸ごと戻る', () => {
+        const s = () => useDotStore.getState();
+        s().beginStroke(0, 0);
+        s().paint(0, 1);
+        s().paint(0, 2);
+        s().endStroke();
+        expect(s().grid[0].slice(0, 3)).toEqual(['█', '█', '█']);
+        s().undo();
+        expect(s().grid).toEqual(emptyGrid(3));
+        expect(s().history).toHaveLength(0);
+    });
+    it('履歴が空のときの undo は何もしない', () => {
+        const before = useDotStore.getState().grid;
+        useDotStore.getState().undo();
+        expect(useDotStore.getState().grid).toBe(before);
+    });
+    it('全消去・行削除も戻せる。空キャンバスの全消去は履歴を積まない', () => {
+        const s = () => useDotStore.getState();
+        s().clearAll(); // 空のまま → 履歴なし
+        expect(s().history).toHaveLength(0);
+        s().beginStroke(1, 1);
+        s().endStroke();
+        s().removeRow();
+        expect(s().grid).toHaveLength(2);
+        s().clearAll();
+        expect(s().grid).toEqual(emptyGrid(2));
+        s().undo(); // 全消去を戻す
+        expect(s().grid[1][1]).toBe('█');
+        s().undo(); // 行削除を戻す
+        expect(s().grid).toHaveLength(3);
+        s().undo(); // ストロークを戻す
+        expect(s().grid).toEqual(emptyGrid(3));
+    });
+    it('履歴は上限を超えると古い方から捨てられる', () => {
+        const s = () => useDotStore.getState();
+        for (let i = 0; i < 60; i++) {
+            s().beginStroke(0, 0); // トグルで塗り⇔消去を繰り返す
+            s().endStroke();
+        }
+        expect(s().history).toHaveLength(50);
     });
 });

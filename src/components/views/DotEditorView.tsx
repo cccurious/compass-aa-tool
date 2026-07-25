@@ -17,7 +17,7 @@ interface DotEditorViewProps {
 }
 
 export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProps) => {
-    const { grid, addRow, removeRow, clearAll } = useDotStore();
+    const { grid, history, undo, addRow, removeRow, clearAll } = useDotStore();
     const { toast, showToast } = useToast();
     const copyResult = useCopyResult('dot', showToast, onCopied);
     const { zoomed, toggleZoom, wrapRef, thumbRef, updateThumb } = useZoomPan();
@@ -66,6 +66,13 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                     </div>
                 )}
                 <div className="bulk-actions">
+                    <button
+                        className="bulk-btn dot-undo-btn"
+                        onClick={undo}
+                        disabled={history.length === 0}
+                    >
+                        ↩ 元に戻す
+                    </button>
                     <button
                         className={`bulk-btn dot-zoom-btn ${zoomed ? 'active' : ''}`}
                         onClick={toggleZoom}

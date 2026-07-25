@@ -23,6 +23,12 @@ export const MAX_RECENT = 12;
  */
 export const MAX_CUSTOM_CHARS = 30;
 
+/**
+ * アンドゥ履歴の上限。grid は最大 15 行 × 20 列の string 配列なので
+ * 50 件持っても数十 KB 程度（メモリだけの話。persist には含めない）。
+ */
+const MAX_HISTORY = 50;
+
 export interface BulkAddResult {
     added: string[];
     /** 半角など全角幅 1.0 でないため除外した文字 */
@@ -33,6 +39,9 @@ export interface BulkAddResult {
 
 interface DotState {
     grid: DotGrid;
+    /** アンドゥ用のスナップショット（古い順）。ストローク・行操作・全消去の単位で積む */
+    history: DotGrid[];
+    undo: () => void;
     /** ユーザーが追加した文字（プリセットとは別管理・まとめて消せる） */
     customPalette: string[];
     /** 最近選んだ文字（新しい順・最大 MAX_RECENT） */
@@ -45,8 +54,6 @@ interface DotState {
     beginStroke: (row: number, col: number) => void;
     endStroke: () => void;
     paint: (row: number, col: number) => void;
-    /** セルを直接書き戻す（2 本指パン開始時の誤タッチ取り消し用） */
-    setCellValue: (row: number, col: number, value: string) => void;
     addPaletteChars: (text: string) => BulkAddResult;
     clearCustom: () => void;
     addRow: () => void;
@@ -57,10 +64,15 @@ interface DotState {
 const putCell = (grid: DotGrid, row: number, col: number, value: string): DotGrid =>
     grid.map((r, ri) => (ri === row ? r.map((c, ci) => (ci === col ? value : c)) : r));
 
+/** 現在の grid を履歴へ積む（上限超過は古い方から捨てる）。grid は不変更新なので参照共有で十分 */
+const pushHistory = (s: Pick<DotState, 'grid' | 'history'>): DotGrid[] =>
+    [...s.history, s.grid].slice(-MAX_HISTORY);
+
 export const useDotStore = create<DotState>()(
     persist(
         (set, get) => ({
             grid: emptyGrid(INITIAL_ROWS),
+            history: [],
             customPalette: [],
             recentChars: [],
             brush: '█',
@@ -79,17 +91,19 @@ export const useDotStore = create<DotState>()(
                 set((s) => {
                     if (row < 0 || row >= s.grid.length || col < 0 || col >= GRID_COLS) return s;
                     const erase = s.brush !== '' && s.grid[row][col] === s.brush;
+                    // 履歴はストローク単位（開始時に 1 回だけ積み、ドラッグ中の paint では積まない）
                     return {
                         strokeErase: erase,
+                        history: pushHistory(s),
                         grid: putCell(s.grid, row, col, erase ? '' : s.brush),
                     };
                 }),
             endStroke: () => set({ strokeErase: null }),
-            setCellValue: (row, col, value) =>
+            undo: () =>
                 set((s) => {
-                    if (row < 0 || row >= s.grid.length || col < 0 || col >= GRID_COLS) return s;
-                    if (s.grid[row][col] === value) return s;
-                    return { grid: putCell(s.grid, row, col, value) };
+                    const prev = s.history[s.history.length - 1];
+                    if (!prev) return s;
+                    return { grid: prev, history: s.history.slice(0, -1), strokeErase: null };
                 }),
             paint: (row, col) =>
                 set((s) => {
@@ -130,14 +144,28 @@ export const useDotStore = create<DotState>()(
                     brush: s.customPalette.includes(s.brush) ? '█' : s.brush,
                 })),
 
+            // 行操作と全消去もアンドゥ対象（特に行削除と全消去は絵が消えるので戻せないと痛い）
             addRow: () =>
                 set((s) =>
                     s.grid.length >= MAX_ROWS
                         ? s
-                        : { grid: [...s.grid, Array(GRID_COLS).fill('')] },
+                        : {
+                              history: pushHistory(s),
+                              grid: [...s.grid, Array(GRID_COLS).fill('')],
+                          },
                 ),
-            removeRow: () => set((s) => (s.grid.length > 1 ? { grid: s.grid.slice(0, -1) } : s)),
-            clearAll: () => set((s) => ({ grid: emptyGrid(s.grid.length) })),
+            removeRow: () =>
+                set((s) =>
+                    s.grid.length > 1
+                        ? { history: pushHistory(s), grid: s.grid.slice(0, -1) }
+                        : s,
+                ),
+            clearAll: () =>
+                set((s) =>
+                    s.grid.some((row) => row.some((c) => c !== ''))
+                        ? { history: pushHistory(s), grid: emptyGrid(s.grid.length) }
+                        : s,
+                ),
         }),
         {
             name: 'compass-aa-dot',
