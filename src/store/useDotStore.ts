@@ -74,17 +74,18 @@ const INITIAL_ROWS = 8;
 export const MAX_ROWS = 15;
 
 /**
- * ユーザー追加文字の上限。パレットは 1 行 7 個（375px 幅）で並ぶため、
- * 2 行ぶんの 14 個を上限とする（プリセット 19＋消しゴムで既に 3 行）。
+ * ユーザー追加文字の上限。パレット表示は 3 段で内部スクロールするので
+ * 多めに取れる。超えたら**古いものから押し出す**（新規優先。
+ * 拒否方式だと「消してから足す」の手間を強いるため）。
  */
-export const MAX_CUSTOM_CHARS = 14;
+export const MAX_CUSTOM_CHARS = 30;
 
 export interface BulkAddResult {
   added: string[];
   /** 半角など全角幅 1.0 でないため除外した文字 */
   skipped: string[];
-  /** 上限に達して入らなかった文字 */
-  overflow: string[];
+  /** 上限を超えたため押し出された古い文字 */
+  evicted: string[];
 }
 
 interface DotState {
@@ -157,7 +158,6 @@ export const useDotStore = create<DotState>()(
     const existing = new Set([...PRESET_PALETTE, ...state.customPalette]);
     const added: string[] = [];
     const skipped: string[] = [];
-    const overflow: string[] = [];
     for (const ch of Array.from(text)) {
       if (existing.has(ch) || added.includes(ch)) continue;
       // 全角幅 1.0 の文字だけがグリッドのマス目に乗る（半角は形が崩れる）
@@ -165,16 +165,15 @@ export const useDotStore = create<DotState>()(
         if (!skipped.includes(ch)) skipped.push(ch);
         continue;
       }
-      if (state.customPalette.length + added.length >= MAX_CUSTOM_CHARS) {
-        overflow.push(ch);
-        continue;
-      }
       added.push(ch);
     }
+    // 上限を超えたら古いものから押し出す（配列の先頭が最古）
+    const merged = [...state.customPalette, ...added];
+    const evicted = merged.length > MAX_CUSTOM_CHARS ? merged.slice(0, merged.length - MAX_CUSTOM_CHARS) : [];
     if (added.length > 0) {
-      set({ customPalette: [...state.customPalette, ...added], brush: added[0] });
+      set({ customPalette: merged.slice(-MAX_CUSTOM_CHARS), brush: added[0] });
     }
-    return { added, skipped, overflow };
+    return { added, skipped, evicted };
   },
   clearCustom: () =>
     set((s) => ({

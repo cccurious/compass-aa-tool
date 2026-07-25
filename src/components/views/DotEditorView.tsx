@@ -5,7 +5,6 @@ import {
     PRESET_PALETTE,
     SUGGEST_CHARS,
     MAX_ROWS,
-    MAX_CUSTOM_CHARS,
 } from '../../store/useDotStore';
 
 import { gridToText, GRID_COLS } from '../../core/grid';
@@ -127,12 +126,12 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
 
     const handleAddChars = () => {
         if (!charInput.trim()) return;
-        const { added, skipped, overflow } = addPaletteChars(charInput);
+        const { added, skipped, evicted } = addPaletteChars(charInput);
         trackPaletteAdd({ added: added.length, skipped: skipped.length });
         const parts: string[] = [];
         if (added.length > 0) parts.push(`${added.join('')} を追加`);
         if (skipped.length > 0) parts.push(`マス目に置けない ${skipped.length} 字は除外`);
-        if (overflow.length > 0) parts.push(`上限 ${MAX_CUSTOM_CHARS} 字のため ${overflow.length} 字は省略`);
+        if (evicted.length > 0) parts.push(`古い ${evicted.join('')} と入れ替え`);
         showToast(parts.length > 0 ? parts.join(' ／ ') : '追加できる文字が見つかりませんでした');
         if (added.length > 0) setCharInput('');
     };
