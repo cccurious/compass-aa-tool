@@ -25,7 +25,14 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
     const [charInput, setCharInput] = useState('');
     const [toast, setToast] = useState('');
     const [category, setCategory] = useState(PALETTE_CATEGORIES[0].id);
+    // 拡大表示（スマホでマスが小さく狙いにくいため）。等倍が既定なので PC は従来どおり
+    const [zoomed, setZoomed] = useState(false);
     const paintingRef = useRef(false);
+    const wrapRef = useRef<HTMLDivElement>(null);
+    // 2 本指はスクロール、1 本指は描画。ブラウザ任せにすると
+    // 1 本指のドラッグがスクロールに取られて塗れなくなるため自前で捌く
+    const pointersRef = useRef(new Map<number, { x: number; y: number }>());
+    const panRef = useRef<{ x: number; scrollLeft: number } | null>(null);
 
     // 最近使った文字を先頭に、追加した文字は専用カテゴリにまとめる
     const tabs = [
@@ -94,10 +101,10 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
     return (
         <div>
             <section className="card-inputs">
-                <div className="section-title">
+                <h3 className="section-title">
                     パレット
                     <HelpTooltip text="マス目に置く文字を選びます。「4分割」を使うと1マスを2×2の点として扱えるので細かい絵が描けます。同じ文字のマスをもう一度なぞると消えます。" />
-                </div>
+                </h3>
                 <div className="dot-tabs">
                     {tabs.map((t) => (
                         <button
@@ -158,15 +165,29 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
             </section>
 
             <section className="card-inputs">
-                <div className="section-title">
+                <h3 className="section-title">
                     キャンバス（{GRID_COLS} × {grid.length}）
                     <HelpTooltip
                         text={`横はチャット1行に収まる${GRID_COLS}マス固定です。縦は${MAX_ROWS}行まで増やせますが、絵が細かいと途中で長さの上限に達します。`}
                     />
-                </div>
+                </h3>
+                <div className="dot-grid-wrap" ref={wrapRef}>
                 <div
                     className="dot-grid"
+                    style={zoomed ? { width: '200%' } : undefined}
                     onPointerDown={(e) => {
+                        pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                        if (pointersRef.current.size >= 2) {
+                            // 2 本目が触れた時点でスクロールへ切り替える
+                            paintingRef.current = false;
+                            endStroke();
+                            const xs = [...pointersRef.current.values()].map((p) => p.x);
+                            panRef.current = {
+                                x: xs.reduce((a, b) => a + b, 0) / xs.length,
+                                scrollLeft: wrapRef.current?.scrollLeft ?? 0,
+                            };
+                            return;
+                        }
                         const pos = cellAt(e.clientX, e.clientY);
                         if (!pos) return;
                         paintingRef.current = true;
@@ -180,11 +201,34 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                         }
                     }}
                     onPointerMove={(e) => {
+                        if (pointersRef.current.has(e.pointerId)) {
+                            pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                        }
+                        if (panRef.current && pointersRef.current.size >= 2) {
+                            const xs = [...pointersRef.current.values()].map((p) => p.x);
+                            const mid = xs.reduce((a, b) => a + b, 0) / xs.length;
+                            if (wrapRef.current) {
+                                wrapRef.current.scrollLeft =
+                                    panRef.current.scrollLeft - (mid - panRef.current.x);
+                            }
+                            return;
+                        }
                         if (!paintingRef.current) return;
                         const pos = cellAt(e.clientX, e.clientY);
                         if (pos) paint(pos[0], pos[1]);
                     }}
-                    onPointerUp={() => { paintingRef.current = false; endStroke(); }}
+                    onPointerUp={(e) => {
+                        pointersRef.current.delete(e.pointerId);
+                        if (pointersRef.current.size < 2) panRef.current = null;
+                        paintingRef.current = false;
+                        endStroke();
+                    }}
+                    onPointerCancel={(e) => {
+                        pointersRef.current.delete(e.pointerId);
+                        if (pointersRef.current.size < 2) panRef.current = null;
+                        paintingRef.current = false;
+                        endStroke();
+                    }}
                     onPointerLeave={() => { paintingRef.current = false; endStroke(); }}
                 >
                     {grid.map((row, r) => (
@@ -197,7 +241,14 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                         </div>
                     ))}
                 </div>
+                </div>
                 <div className="bulk-actions">
+                    <button
+                        className="bulk-btn dot-zoom-btn"
+                        onClick={() => setZoomed((v) => !v)}
+                    >
+                        {zoomed ? '縮小' : '拡大'}
+                    </button>
                     <button className="bulk-btn" onClick={addRow} disabled={grid.length >= MAX_ROWS}>
                         行を追加
                     </button>

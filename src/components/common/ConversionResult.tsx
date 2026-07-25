@@ -35,10 +35,10 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
     return (
         <>
             <section className="card-inputs">
-                <div className="section-title">
+                <h3 className="section-title">
                     {title ?? 'チャット表示プレビュー'}
                     <HelpTooltip text="ゲーム内での見え方を再現しています。緑の枠がチャット1行ぶんの幅（全角20文字）で、ここを超えると自動で折り返されます。" />
-                </div>
+                </h3>
                 <div className="chat-bubble">
                     {/* 実機 1 行ぶんの幅（全角 20.5 字）を持つ枠。これを中央に置くことで
                         吹き出し内の左右位置まで実機と同じ見え方になる */}

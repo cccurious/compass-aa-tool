@@ -10,7 +10,7 @@ import { MAX_ROWS } from '../../store/useDotStore';
 export const GuideView = () => (
     <div>
         <section className="card-inputs">
-            <div className="section-title">使い方</div>
+            <h3 className="section-title">使い方</h3>
             <ol className="guide-list">
                 <li>
                     <b>ドット打ちエディタ</b>でマス目をタップして絵を描く。
@@ -27,7 +27,7 @@ export const GuideView = () => (
         </section>
 
         <section className="card-inputs">
-            <div className="section-title">知っておきたい制限</div>
+            <h3 className="section-title">知っておきたい制限</h3>
             <dl className="guide-dl">
                 <dt>1 回に送れる長さの上限</dt>
                 <dd>
@@ -53,7 +53,7 @@ export const GuideView = () => (
         </section>
 
         <section className="card-inputs">
-            <div className="section-title">ドット打ちのコツ</div>
+            <h3 className="section-title">ドット打ちのコツ</h3>
             <ul className="guide-list">
                 <li>
                     <b>4分割</b>の文字（<code>▘▝▖▗▚▞▛▜▙▟</code>）を使うと、

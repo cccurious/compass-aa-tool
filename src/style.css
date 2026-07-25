@@ -148,11 +148,6 @@ body {
 /* ===============================
    AA変換ツール専用スタイル
 =============================== */
-.calibration-note {
-    background: #fffbeb; border: 2px solid #f59e0b; border-radius: 8px;
-    padding: 10px 12px; margin-bottom: 16px; font-size: 0.8rem; font-weight: bold;
-    color: #92400e;
-}
 /* ===============================
    ヘルプ（? アイコン）
 =============================== */
@@ -232,10 +227,6 @@ body {
     border-radius: 4px; padding: 1px 5px; font-size: 0.95em;
 }
 
-.info-note {
-    background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px;
-    padding: 8px 12px; margin-top: 12px; font-size: 0.8rem; color: #1e40af;
-}
 .warn-note {
     background: #fffbeb; border-left: 3px solid #f59e0b; border-radius: 4px;
     padding: 8px 12px; margin-top: 12px; font-size: 0.8rem; color: #92400e;
@@ -348,12 +339,6 @@ body {
     margin-top: 8px;
     justify-content: flex-end;
 }
-.dot-hint {
-    margin-top: 10px;
-    font-size: 0.75rem;
-    color: var(--subdued-text);
-    line-height: 1.5;
-}
 .dot-empty-note {
     text-align: center;
     padding: 20px 16px;
@@ -389,15 +374,26 @@ body {
 }
 .dot-add-input:focus { border-color: var(--primary-color); }
 
+/* 拡大時にはみ出した分をここで横スクロールさせる。
+   スクロールは 2 本指の自前処理で行うので touch-action はグリッド側で殺す */
+.dot-grid-wrap {
+    overflow-x: auto;
+    border: 2px solid var(--dark-border);
+    border-radius: 8px;
+    -webkit-overflow-scrolling: touch;
+}
 .dot-grid {
     display: flex;
     flex-direction: column;
-    border: 2px solid var(--dark-border);
-    border-radius: 8px;
     overflow: hidden;
     touch-action: none;
     user-select: none;
     background: #fdfdfd;
+}
+/* 拡大ボタンは狭い画面でだけ出す（PC はもともと十分な大きさなので出さない） */
+.dot-zoom-btn { display: none; }
+@media (max-width: 640px) {
+    .dot-zoom-btn { display: inline-block; }
 }
 .dot-grid-row {
     display: grid;

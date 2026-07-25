@@ -40,10 +40,10 @@ export const AaConverterView = ({ input, setInput, onCopied }: AaConverterViewPr
     return (
         <div>
             <section className="card-inputs">
-                <div className="section-title">
+                <h3 className="section-title">
                     AAを貼り付け
                     <HelpTooltip text="すでにあるAAを改行したまま貼り付けてください。ゲーム内で同じ形に見えるよう、見えない調整を自動で入れます。" />
-                </div>
+                </h3>
                 <textarea
                     className="aa-input"
                     value={input}
