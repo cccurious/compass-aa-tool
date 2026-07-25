@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { gridToText, emptyGrid, GRID_COLS } from '../src/core/grid';
-import { textWidth, MESSAGE_UNIT_LIMIT, messageUnits } from '../src/core/metrics';
+import { textWidth, messageCost, isOverMessageLimit } from '../src/core/metrics';
 import { MAX_ROWS } from '../src/store/useDotStore';
 import { simulateWrap } from '../src/core/wrap';
 import { convert } from '../src/core/convert';
@@ -118,8 +118,8 @@ describe('convert: 全角充填パディング（units 再校正後の最優先�
         // ラウンドトリップ: 文字単位折り返しで 2 行に割れる
         const rendered = result.preview.map((l) => l.text.replace(/[ \u3000]+$/, ''));
         expect(rendered).toEqual(src);
-        // units: 半角スペース式（30+16=46）より安い 35
-        expect(messageUnits(result.output)).toBe(35);
+        // 長さコスト: 半角スペース式（30+16=46）より安い 35
+        expect(messageCost(result.output).length).toBe(35);
     });
     it('幅 20 ちょうどの行はパディング 0 文字（境界コスト完全ゼロ）', () => {
         const result = convert('█'.repeat(20) + '\n' + '▓'.repeat(20));
@@ -140,8 +140,8 @@ describe('convert: 全角充填パディング（units 再校正後の最優先�
         ].join('\n');
         const result = convert(src);
         expect(result.output).not.toContain(' ');
-        expect(messageUnits(result.output)).toBe(175);
-        expect(messageUnits(result.output)).toBeLessThanOrEqual(MESSAGE_UNIT_LIMIT);
+        expect(messageCost(result.output)).toEqual({ length: 175, width: 175, heavySpaces: 0 });
+        expect(isOverMessageLimit(messageCost(result.output))).toBe(false);
     });
 });
 
@@ -188,21 +188,21 @@ describe('行数上限（キャンバス設計の根拠・2026-07-25 実測）',
         let max = 0;
         for (let rows = 1; rows <= 20; rows++) {
             const src = Array.from({ length: rows }, () => '█'.repeat(width)).join('\n');
-            if (messageUnits(convert(src).output) <= MESSAGE_UNIT_LIMIT) max = rows;
+            if (!isOverMessageLimit(messageCost(convert(src).output))) max = rows;
         }
         return max;
     };
-    // 全角充填パディング（境界あたり 20−幅 units・スペース 0 個）により、
-    // units 上限 271 での行数はどの密度でも 13〜14 行＝物理上限 15 にほぼ並ぶ。
-    // なお文字数は増える方向のトレードオフのため、入力欄の文字数観測値 184 には
-    // 別途近づき得る（カウンタの注意書きが担当）
-    it('最も密な幅 20 は 13 行（境界コスト 0 で 13×20=260 units）', () => {
-        expect(rowsThatFit(20)).toBe(13);
+    // 全角充填パディングでは各行が幅換算ちょうど 20 になるため、
+    // 幅換算上限 184（v4 の上限 B）が先に効いて行数はどの密度でも 9 行
+    // （9×20=180 ≤ 184 < 10×20）。長さ上限 A（271.5）側は 180 で余裕
+    it('最も密な幅 20 は 9 行（幅換算 184 が先に効く）', () => {
+        expect(rowsThatFit(20)).toBe(9);
     });
-    it('中間・疎の密度でも 13〜14 行入る', () => {
-        expect(rowsThatFit(15)).toBe(13);
-        expect(rowsThatFit(10)).toBe(14);
-        expect(rowsThatFit(4)).toBe(14);
+    it('中間・疎の密度でも 9〜10 行（全角充填では途中行のコストが密度によらず幅換算 20）', () => {
+        expect(rowsThatFit(15)).toBe(9);
+        expect(rowsThatFit(10)).toBe(9);
+        // 幅 4 の最終行（パディングなし）は 9×20+4=184 でちょうど収まり 10 行
+        expect(rowsThatFit(4)).toBe(10);
     });
     it('物理上限 15 行を超える密度は存在しない（MAX_ROWS の根拠）', () => {
         for (let w = 1; w <= 20; w++) expect(rowsThatFit(w)).toBeLessThanOrEqual(MAX_ROWS);

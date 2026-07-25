@@ -4,8 +4,10 @@ import {
     isKnownWidth,
     classifyChar,
     textWidth,
-    messageUnits,
-    MESSAGE_UNIT_LIMIT,
+    messageCost,
+    isOverMessageLimit,
+    MESSAGE_LIMIT_LENGTH,
+    MESSAGE_LIMIT_WIDTH,
 } from '../src/core/metrics';
 import { PALETTE_CATEGORIES, SUGGEST_CHARS } from '../src/core/palette';
 
@@ -53,20 +55,38 @@ describe('実機校正済みの 3 層モデル', () => {
     });
 });
 
-describe('メッセージ上限の units モデル（2026-07-25 再々校正・プローブ 19 本）', () => {
-    it('半角スペース以外は全半角問わず 1、半角スペースは 16', () => {
-        expect(messageUnits('あa█ ')).toBe(1 + 1 + 1 + 16);
+describe('メッセージ上限の二重モデル v4（2026-07-25・プローブ 26 本で確定）', () => {
+    it('上限 A: 全角 1・半角 0.5・半角スペースは全角グリフ直後のみ 16', () => {
+        const c = messageCost('あ a　 ');
+        // あ(1) + sp(あの直後=16) + a(0.5) + 全sp(1) + sp(全スペース直後=0.5)
+        expect(c.length).toBe(1 + 16 + 0.5 + 1 + 0.5);
+        expect(c.heavySpaces).toBe(1);
     });
-    it('レトリバー実測: 全文（非 sp 151 + sp 8）は 279 units で上限超。切断された残存部分（非 sp 143 + sp 8）はちょうど 271', () => {
-        expect(messageUnits('０'.repeat(151) + ' '.repeat(8))).toBe(279);
-        expect(messageUnits('０'.repeat(143) + ' '.repeat(8))).toBe(MESSAGE_UNIT_LIMIT);
+    it('上限 B: 幅換算は全角 1・半角(スペース含む) 0.5', () => {
+        expect(messageCost('あ a　 ').width).toBe(1 + 0.5 + 0.5 + 1 + 0.5);
     });
-    it('あ×176（UTF-8 528 バイト）は実機無傷 ＝ 旧 512 バイト説の反証', () => {
-        expect(messageUnits('あ'.repeat(176))).toBeLessThanOrEqual(MESSAGE_UNIT_LIMIT);
+    it('レトリバー旧出力の実測: 残存部分（０143+全角直後 sp8）は A ちょうど 271', () => {
+        const kept = messageCost(('０'.repeat(17) + ' ').repeat(8) + '０'.repeat(7));
+        expect(kept.length).toBe(143 + 8 * 16);
+        expect(kept.length).toBeLessThanOrEqual(MESSAGE_LIMIT_LENGTH);
     });
-    it('P9 実測: 数字 175 + sp6 = 271 でちょうど上限、176 個目から切られる', () => {
-        expect(messageUnits('０'.repeat(175) + ' '.repeat(6))).toBe(MESSAGE_UNIT_LIMIT);
-        expect(messageUnits('０'.repeat(176) + ' '.repeat(6))).toBe(MESSAGE_UNIT_LIMIT + 1);
+    it('PD1 実測: 先頭に半角 a を足しても切断位置が動かない（a=0.5 で A=271.5 まで残存）', () => {
+        const kept = messageCost('a' + ('０'.repeat(17) + ' ').repeat(8) + '０'.repeat(7));
+        expect(kept.length).toBe(MESSAGE_LIMIT_LENGTH);
+    });
+    it('PD2/PD3 実測: あ×184 で幅換算上限。半角 a は 0.5 と数える', () => {
+        expect(messageCost('あ'.repeat(184)).width).toBe(MESSAGE_LIMIT_WIDTH);
+        expect(messageCost('a' + 'あ'.repeat(183)).width).toBe(183.5);
+        expect(isOverMessageLimit(messageCost('あ'.repeat(185)))).toBe(true);
+    });
+    it('電球 AA 型（半角 30 スペース混在 187 字）は両上限とも無傷 ＝ 単一 16 重み説の反証', () => {
+        // 全角スペース直後・半角直後・スペース連続内のスペースは全て 0.5
+        const c = messageCost('　 　 a ﾉ  ' + 'あ'.repeat(150));
+        expect(c.heavySpaces).toBe(0);
+        expect(isOverMessageLimit(c)).toBe(false);
+    });
+    it('あ×176（UTF-8 528 バイト）は無傷 ＝ 旧 512 バイト説の反証', () => {
+        expect(isOverMessageLimit(messageCost('あ'.repeat(176)))).toBe(false);
     });
 });
 

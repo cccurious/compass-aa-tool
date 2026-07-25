@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { ConvertResult } from '../core/convert';
-import { MESSAGE_UNIT_LIMIT, messageUnits, utf8ByteLength } from '../core/metrics';
+import { isOverMessageLimit, messageCost, utf8ByteLength } from '../core/metrics';
 import { trackCopy } from '../utils/analytics';
 
 /**
@@ -22,7 +22,7 @@ export function useCopyResult(
                     source,
                     bytes,
                     lines: result.preview.length,
-                    over_limit: messageUnits(result.output) > MESSAGE_UNIT_LIMIT,
+                    over_limit: isOverMessageLimit(messageCost(result.output)),
                     had_removed_chars: result.removedLines.length > 0,
                     had_unknown_width: result.unknownWidthLines.length > 0,
                 });

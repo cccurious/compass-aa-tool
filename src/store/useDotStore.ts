@@ -7,9 +7,9 @@ import { PRESET_PALETTE } from '../core/palette';
 const INITIAL_ROWS = 8;
 
 /**
- * 行数の上限。上限は units（全角換算 271）で、全角充填パディングなら
- * どの密度でも 13〜14 行入る（tests の行数上限テスト）。物理上限の 15 を採り、
- * 実際に入るかは文字数カウンタが units と入力欄の文字数観測値の両面で示す。
+ * 行数の上限。実機の上限（v4: 幅換算 184 が先に効く）では全角充填パディングで
+ * どの密度でも 9 行が実用上限（tests の行数上限テスト）。それでも 15 を保つのは、
+ * 上限は今後の最適化やゲーム更新で動き得るためで、実際に入るかはカウンタが示す。
  */
 export const MAX_ROWS = 15;
 
@@ -156,9 +156,7 @@ export const useDotStore = create<DotState>()(
                 ),
             removeRow: () =>
                 set((s) =>
-                    s.grid.length > 1
-                        ? { history: pushHistory(s), grid: s.grid.slice(0, -1) }
-                        : s,
+                    s.grid.length > 1 ? { history: pushHistory(s), grid: s.grid.slice(0, -1) } : s,
                 ),
             clearAll: () =>
                 set((s) =>

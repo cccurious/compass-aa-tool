@@ -1,10 +1,10 @@
 import { ConvertResult } from '../../core/convert';
 import {
     LINE_LIMIT,
-    MESSAGE_UNIT_LIMIT,
-    INPUT_FIELD_CHARS_OBSERVED,
+    MESSAGE_LIMIT_LENGTH,
+    MESSAGE_LIMIT_WIDTH,
     charWidth,
-    messageUnits,
+    messageCost,
 } from '../../core/metrics';
 import { HelpTooltip } from './HelpTooltip';
 
@@ -33,17 +33,23 @@ interface ConversionResultProps {
 
 /** プレビュー・警告・文字数カウンタ・コピーボタン（貼り付け／ドット打ち共通） */
 export const ConversionResult = ({ result, onCopy, title }: ConversionResultProps) => {
-    // 実機の上限は「重み付き文字数」（通常 1・半角スペースのみ 16）。units ＝ 全角換算
-    const units = messageUnits(result.output);
-    const over = units > MESSAGE_UNIT_LIMIT;
-    // 入力欄の打鍵段階には別の文字数制限（観測 184）もあるため、迫ったら注意書き
-    const nearInputCap =
-        !over && Array.from(result.output).length > INPUT_FIELD_CHARS_OBSERVED.fullWidth - 4;
-    // 超過の主因が AA 内の半角スペース（1 個 16 換算）のときは、それが分かる内訳を添える
-    const spaceCount = Array.from(result.output).filter((c) => c === ' ').length;
+    // 実機の上限は 2 本立て（metrics.ts の v4 モデル）:
+    //   A: 長さ 271.5（全角の直後の半角スペースだけ 16）／ B: 幅換算 184（半角 0.5）
+    const cost = messageCost(result.output);
+    const overA = cost.length > MESSAGE_LIMIT_LENGTH;
+    const overB = cost.width > MESSAGE_LIMIT_WIDTH;
+    const over = overA || overB;
+    // 「あと全角何文字置けるか」= 両予算の残りの小さい方（全角 1 字は A/B とも 1 消費）
+    const remain = Math.floor(
+        Math.min(MESSAGE_LIMIT_LENGTH - cost.length, MESSAGE_LIMIT_WIDTH - cost.width),
+    );
+    const overBy = Math.ceil(
+        Math.max(cost.length - MESSAGE_LIMIT_LENGTH, cost.width - MESSAGE_LIMIT_WIDTH),
+    );
+    // 超過の主因が「全角直後の半角スペース」のときは内訳を添える（何を減らすべきか示す）
     const spaceHint =
-        over && spaceCount > 0
-            ? `（半角スペース ${spaceCount} 個が全角 ${spaceCount * 16} 文字ぶんを消費）`
+        overA && cost.heavySpaces > 0
+            ? `（全角の直後の半角スペース ${cost.heavySpaces} 個が 1 個 16 文字ぶんを消費）`
             : '';
     return (
         <>
@@ -106,12 +112,10 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
 
             <div className={`char-count ${over ? 'over' : ''}`}>
                 {over
-                    ? `上限超過（${units} / ${MESSAGE_UNIT_LIMIT}）— 全角 ${units - MESSAGE_UNIT_LIMIT} 文字ぶん減らしてください${spaceHint}`
-                    : nearInputCap
-                      ? `残り 全角 ${MESSAGE_UNIT_LIMIT - units} 文字ぶん（${units} / ${MESSAGE_UNIT_LIMIT}）※文字数がゲームの入力欄の上限（約${INPUT_FIELD_CHARS_OBSERVED.fullWidth}字）に近く、貼り付け時に切れる可能性があります`
-                      : `残り 全角 ${MESSAGE_UNIT_LIMIT - units} 文字ぶん（${units} / ${MESSAGE_UNIT_LIMIT}）`}
+                    ? `上限超過 — 全角 ${overBy} 文字ぶん減らしてください${spaceHint}`
+                    : `残り 全角 ${remain} 文字ぶん（幅換算 ${cost.width} / ${MESSAGE_LIMIT_WIDTH}）`}
                 <HelpTooltip
-                    text={`1メッセージの上限は全角換算で ${MESSAGE_UNIT_LIMIT} 文字ぶんです。ほとんどの文字は全半角問わず 1 文字ぶんですが、半角スペースだけは 1 個で全角 16 文字ぶんも消費されます（AA の中の半角スペースも同じ）。このツールの自動調整は半角スペースをできるだけ使いません。超えたぶんは送信時に末尾が切り捨てられます。`}
+                    text={`上限は 2 つあります。① 全角換算 ${MESSAGE_LIMIT_WIDTH} 文字ぶん（半角の文字とスペースは 0.5 文字ぶん）。② 長さ 271 文字ぶん（全角文字の直後にある半角スペースだけ、1 個で全角 16 文字ぶんに膨らみます）。どちらかを超えたぶんは送信時に末尾が切り捨てられます。カウンタの残りは 2 つのうち厳しい方です。`}
                 />
             </div>
             <button className="primary-btn" onClick={onCopy}>

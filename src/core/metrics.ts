@@ -27,36 +27,64 @@ export const LIMIT_FORCE = 20.548;
 export const LINE_LIMIT = (LIMIT_SAFE + LIMIT_FORCE) / 2;
 
 /**
- * 入力欄が受け付ける文字数の観測値（**送信判定には使わない**）。
- * 半角 a は 196 文字で入力停止・全角 あ は IME 確定時に 184 文字へ切り詰められた。
- * これは打鍵段階の別制限で規則は未特定。送信後に残るかは messageUnits() が決める。
- * 本ツールの出力は units 上限に先に当たるため実害はほぼ無いが、
- * 文字数が INPUT_FIELD_CHARS_OBSERVED.fullWidth に迫る出力には注意書きを出す。
- */
-export const INPUT_FIELD_CHARS_OBSERVED = { halfWidth: 196, fullWidth: 184 } as const;
-
-/**
- * 1 メッセージの上限（2026-07-25 再々校正・プローブ 19 本で確定）。
- * バイト数でも文字数でもなく**重み付き文字数（units）**:
- *   - 半角スペース以外の文字 = 種別・全半角問わず 1
- *   - 半角スペース = SPACE_UNITS（16。自身の 1 を含む）
- * units が MESSAGE_UNIT_LIMIT を超えた分は、入力欄の確定時に末尾から切り捨てられる。
+ * 1 メッセージの上限は **2 本立て**（2026-07-25 プローブ 26 本で確定・v4）。
+ * どちらかを超えた分が入力欄の確定時に末尾から切り捨てられる。
  *
- * 根拠（挟み撃ち）: スペース 8 個のドット絵は非 sp 文字 143 個で切断（C−8k=143）、
- * スペース 6 個の数字ものさしは 175 個で切断（C−6k=175）→ k=16・C=271。
- * あ×176（UTF-8 528 バイト）が無傷で通るため**旧 512 バイト説は反証済み**。
- * 詳細は calibration-plan.md「メッセージ上限の再々校正」。
+ * 上限 A（長さ・LIMIT_LENGTH=271.5）:
+ *   全角(幅1.0)=1・半角=0.5・半角スペースは**直前の文字が全角のときだけ 16**、
+ *   それ以外（直前が半角・スペース・全角スペース以外…※）は 0.5。
+ *   ※正確には「直前が幅 1.0 の非スペース文字」。全角スペースの直後は 0.5。
+ * 上限 B（幅換算・LIMIT_WIDTH=184）:
+ *   全角=1・半角(スペース含む)=0.5。内部の 2 バイト換算（368 バイト相当）の匂い。
  *
- * 含意: 改行に使う半角スペース 1 個 ＝ 全角 16 文字ぶんの予算を食う。
+ * 根拠となる決定打:
+ * - スペース 8 個のドット絵（全て全角直後）は非 sp 143 個で切断 = A ちょうど 271
+ * - 同型で先頭に半角 a を足しても切断位置が全く動かない（a=0.5・A=271.5 まで残存）
+ * - あ×220 は**スペースなしなのに 184 個**で切断・a+あ×220 は a+183 で切断 = B
+ * - 半角スペース 30 個の電球 AA（187 字）が無傷 = スペースの大半が全角スペースや
+ *   半角の直後で 0.5 扱い（A=259・B=166）
+ * - あ×176（UTF-8 528B）無傷 → 旧 512 バイト説は反証済み
+ * 詳細は calibration-plan.md「メッセージ上限の最終モデル v4」。
  */
-export const MESSAGE_UNIT_LIMIT = 271;
-export const SPACE_UNITS = 16;
+export const MESSAGE_LIMIT_LENGTH = 271.5;
+export const MESSAGE_LIMIT_WIDTH = 184;
 
-/** 実機の上限判定に使う重み付き文字数（全角換算とほぼ同義） */
-export function messageUnits(text: string): number {
-    let units = 0;
-    for (const ch of text) units += ch === ' ' ? SPACE_UNITS : 1;
-    return units;
+export interface MessageCost {
+    /** 上限 A 用の長さ（全角の直後の半角スペース=16 の重み付き） */
+    length: number;
+    /** 上限 B 用の幅換算（全角 1・半角 0.5） */
+    width: number;
+    /** 16 換算になっている半角スペースの個数（超過時の内訳表示用） */
+    heavySpaces: number;
+}
+
+/** 実機の上限判定に使うコスト（両上限ぶん）を一度に計算する */
+export function messageCost(text: string): MessageCost {
+    const chars = Array.from(text);
+    let length = 0;
+    let width = 0;
+    let heavySpaces = 0;
+    chars.forEach((c, i) => {
+        if (c === ' ') {
+            // 「直前が全角グリフ」のときだけ 16。全角スペースの直後は 0.5（電球 AA で実証）
+            const prev = chars[i - 1];
+            const heavy =
+                prev !== undefined && prev !== ' ' && prev !== '　' && charWidth(prev) >= 1.0;
+            length += heavy ? 16 : 0.5;
+            if (heavy) heavySpaces++;
+            width += 0.5;
+            return;
+        }
+        const full = charWidth(c) >= 1.0;
+        length += full ? 1 : 0.5;
+        width += full ? 1 : 0.5;
+    });
+    return { length, width, heavySpaces };
+}
+
+/** どちらかの上限を超えているか */
+export function isOverMessageLimit(cost: MessageCost): boolean {
+    return cost.length > MESSAGE_LIMIT_LENGTH || cost.width > MESSAGE_LIMIT_WIDTH;
 }
 
 /**
@@ -108,7 +136,7 @@ const DEVICE_OVERRIDES: Record<string, number> = {
     // ஐ(U+0B90 タミル文字): 実機で削除されず幅 0 で入力できる（2026-07-25 ユーザー実測）。
     // 幅 0 で生き残る唯一の既知文字＝「見えない終端ガード」候補（末尾 ▄ 連続の
     // 削られ対策）。自動付与に使う前にコピーバックでの残存と連続時の幅 0 を要再確認
-    'ஐ': 0,
+    ஐ: 0,
 };
 
 /** BIZ UDPGothic 400 の実測幅（scripts/extract-metrics.mjs で生成・あ=1.0 正規化） */
