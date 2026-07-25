@@ -3,11 +3,17 @@ import { textWidth } from '../src/core/metrics';
 import { simulateWrap } from '../src/core/wrap';
 import { convert } from '../src/core/convert';
 
-describe('metrics.textWidth', () => {
-    it('全角は 1.0・半角は 0.5 で数える', () => {
+describe('metrics.textWidth（Noto Sans JP 仮説テーブル）', () => {
+    it('全角かな・漢字・全角スペースは 1.0', () => {
         expect(textWidth('あいう')).toBe(3.0);
-        expect(textWidth('ab ')).toBe(1.5);
-        expect(textWidth('あa　 ')).toBe(3.0);
+        expect(textWidth('永　愛')).toBe(3.0);
+    });
+    it('半角スペースは 0.224（Noto Sans JP 実測。仕様書の 0.5 とは異なる仮説値）', () => {
+        expect(textWidth(' ')).toBeCloseTo(0.224, 4);
+    });
+    it('狭幅記号の幅がフォント由来の値になっている', () => {
+        expect(textWidth(',')).toBeCloseTo(0.278, 4);
+        expect(textWidth('\\')).toBeCloseTo(0.392, 4);
     });
 });
 
