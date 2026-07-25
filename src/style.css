@@ -300,12 +300,14 @@ body {
     padding: 12px 16px;
     font-family: "Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif;
     font-size: 0.95rem;
-    line-height: 1.4;
+    /* 実機の行ピッチは全角 1 文字幅の 1.75 倍（スクショ実測 42px / 24px）。
+       文字幅と同じく縦も実機比率に合わせないと、AA の縦横比が変わって見える */
+    line-height: 1.75;
     overflow-x: auto;
 }
 .chat-line {
     white-space: nowrap;
-    min-height: 1.4em;
+    min-height: 1.75em;
 }
 /* 幅テーブル駆動の文字ボックス: 累積位置を実機と一致させる */
 .chat-ch {
