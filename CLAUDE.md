@@ -90,7 +90,9 @@ Opus 5 がメイン（2026-07-25 にユーザーがモデル切替）。定型�
 
 ```
 npm run dev      # 開発サーバ（Browser ペインの preview_start "compass-aa-tool" 経由）
-npm test         # vitest（metrics.test.ts / convert.test.ts）
+npm test         # vitest（metrics / convert / store）
+npm run lint     # ESLint（CI でも build 前に走る。例外 2 件の理由は eslint.config.js 参照）
+npm run format   # Prettier（TS/TSX のみ。style.css は対象外＝ .prettierignore に理由）
 npm run build    # tsc + vite build（main へ push で Pages へ自動デプロイ）
 ```
 

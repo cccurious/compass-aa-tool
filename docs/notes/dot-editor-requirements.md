@@ -28,8 +28,11 @@
 ## 実装構成
 
 - `src/core/grid.ts` — gridToText（純関数・テスト対象）
+- `src/core/palette.ts` — パレットのマスターデータ（幅 1.0 保証は門番テストが担保）
 - `src/store/useDotStore.ts` — zustand（grid・palette・選択中文字）
-- `src/components/views/DotEditorView.tsx` — エディタ UI
+- `src/components/views/DotEditorView.tsx` — 組み立てだけの薄い親。実体は
+  `dot/PalettePanel.tsx`（パレット UI）・`dot/useCanvasGestures.ts`（1 本指描画／
+  2 本指パン）・`dot/useZoomPan.ts`（2 倍表示とスクロールインジケータ）
 - App.tsx — ビュー切替に 'dot' を追加・変換ビューの入力を App レベルへリフトして転送を実現
 - Sidebar — 「ドット打ちエディタ」を有効化
 
@@ -147,3 +150,19 @@
    崩れないが、片割れが空のペアは結局表現できない（同じフィラー問題に帰着）。
 2. **AA 変換ビューへの往復**: テキスト編集なら半角もプロポーショナルも自由。
    「テキストで細かく調整する」ボタンが既にこの動線。
+
+## 設計メモ: アンドゥ（未実装・2026-07-25 レビューで方針決定）
+
+現状、2 本指パン開始時の誤タッチ復元は「ストローク開始セルの元値を 300ms だけ
+覚えておいて書き戻す」という局所ハック（useCanvasGestures.ts）で済ませている。
+本物のアンドゥを入れるときは次の形にする:
+
+- ストローク単位で履歴を積む: beginStroke 時に grid のスナップショットを
+  `history: DotGrid[]`（store 内・上限 50 件程度）へ push、undoLastStroke で pop。
+  grid は行×20 の string 配列なのでスナップショットのコストは無視できる。
+- これが入ったら 300ms 復元ハックは削除し、2 本指検出時は単に undoLastStroke を
+  呼ぶ（「誤タッチの 1 マス」だけでなくドラッグで塗った複数マスも正しく戻る）。
+- history は persist の partialize に**含めない**（描きかけの grid 自体を
+  保存しない方針と揃える）。
+
+着手の目安: 実機ユーザーから「消しゴムで戻すのが面倒」の声が出たら。
