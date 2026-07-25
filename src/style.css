@@ -339,11 +339,36 @@ body {
     margin-top: 8px;
     justify-content: flex-end;
 }
-.dot-empty-note {
-    text-align: center;
-    padding: 20px 16px;
-    font-size: 0.85rem;
+/* まだ何も無い状態の案内。初めて開いた人がここに着地するので、
+   「何ができるか」ではなく「次に何をすればよいか」を書く */
+.empty-guide {
+    background: var(--white);
+    border: 2px dashed var(--border-color);
+    border-radius: 12px;
+    padding: 18px 16px;
+    margin-bottom: 20px;
+}
+.empty-guide-lead {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: var(--text-color);
+    margin-bottom: 10px;
+}
+.empty-guide-steps {
+    padding-left: 1.3em;
+    font-size: 0.82rem;
+    line-height: 1.8;
     color: var(--subdued-text);
+}
+.empty-guide-note {
+    font-size: 0.8rem;
+    line-height: 1.75;
+    color: var(--subdued-text);
+}
+.guide-lead {
+    font-size: 0.88rem;
+    line-height: 1.8;
+    margin-bottom: 14px;
 }
 .secondary-btn {
     width: 100%;

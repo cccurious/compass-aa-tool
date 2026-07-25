@@ -103,7 +103,7 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
             <section className="card-inputs">
                 <h3 className="section-title">
                     パレット
-                    <HelpTooltip text="マス目に置く文字を選びます。「4分割」を使うと1マスを2×2の点として扱えるので細かい絵が描けます。同じ文字のマスをもう一度なぞると消えます。" />
+                    <HelpTooltip text="マス目に置く文字を選びます。「4分割」を使うと1マスを2×2の点として扱えるので細かい絵が描けます。一度使った文字は「最近」タブに残るので、そこから選び直せます。" />
                 </h3>
                 <div className="dot-tabs">
                     {tabs.map((t) => (
@@ -168,7 +168,7 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                 <h3 className="section-title">
                     キャンバス（{GRID_COLS} × {grid.length}）
                     <HelpTooltip
-                        text={`横はチャット1行に収まる${GRID_COLS}マス固定です。縦は${MAX_ROWS}行まで増やせますが、絵が細かいと途中で長さの上限に達します。`}
+                        text={`横はチャット1行に収まる${GRID_COLS}マス固定です。縦は${MAX_ROWS}行まで増やせますが、絵が細かいと途中で長さの上限に達します。スマホでマスが小さいときは「拡大」を押してください（拡大中は2本指で横スクロールできます）。`}
                     />
                 </h3>
                 <div className="dot-grid-wrap" ref={wrapRef}>
@@ -262,7 +262,14 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
             {result ? (
                 <ConversionResult result={result} onCopy={handleCopy} />
             ) : (
-                <div className="dot-empty-note">マスをタップして絵を描くと、ここにプレビューが出ます。</div>
+                <div className="empty-guide">
+                    <p className="empty-guide-lead">マス目をタップすると絵が描けます。</p>
+                    <ol className="empty-guide-steps">
+                        <li>上のパレットで置きたい文字を選ぶ</li>
+                        <li>マス目をなぞって描く（同じ文字をもう一度なぞると消えます）</li>
+                        <li>ここに出るプレビューで確認して、コピーしてゲームに貼り付け</li>
+                    </ol>
+                </div>
             )}
 
             {result && (

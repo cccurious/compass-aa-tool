@@ -57,7 +57,19 @@ export const AaConverterView = ({ input, setInput, onCopied }: AaConverterViewPr
                 </div>
             </section>
 
-            {result && <ConversionResult result={result} onCopy={handleCopy} />}
+            {result ? (
+                <ConversionResult result={result} onCopy={handleCopy} />
+            ) : (
+                <div className="empty-guide">
+                    <p className="empty-guide-lead">
+                        他所で見つけた AA や、自分で作った AA を貼り付けてください。
+                    </p>
+                    <p className="empty-guide-note">
+                        改行はそのままで構いません。ゲームのチャットは改行が使えないため、
+                        同じ形に見えるよう自動で調整した 1 行のテキストに変換します。
+                    </p>
+                </div>
+            )}
 
             <div className={`toast ${toast ? 'show' : ''}`}>{toast}</div>
         </div>
