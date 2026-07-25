@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { gridToText, emptyGrid, GRID_COLS } from '../src/core/grid';
 import { textWidth, MAX_MESSAGE_BYTES, utf8ByteLength } from '../src/core/metrics';
-import { MAX_ROWS } from '../src/store/useDotStore';
+import { MAX_ROWS, PALETTE_CATEGORIES } from '../src/store/useDotStore';
 import { simulateWrap } from '../src/core/wrap';
 import { convert } from '../src/core/convert';
 
@@ -266,5 +266,21 @@ describe('罫線パレット（丸角つき）', () => {
         expect(text).toBe('╭─╮' + '\n' + '╰─╯');
         const rendered = convert(text).preview.map((l) => l.text.replace(/[ 　]+$/, ''));
         expect(rendered).toEqual(['╭─╮', '╰─╯']);
+    });
+});
+
+describe('追加した線種（二重・つなぎ）', () => {
+    it('二重線・太細つなぎは幅 1.0 で警告も出ない', () => {
+        expect(textWidth('═║╔╗╚╝╠╣╦╩╬')).toBe(11.0);
+        expect(textWidth('┍┑┕┙┎┒┖┚┝┥┰┸')).toBe(12.0);
+        expect(convert('╔═╗\n╚═╝').unknownWidthLines).toEqual([]);
+        expect(convert('┍━┑\n┕━┙').unknownWidthLines).toEqual([]);
+    });
+    it('パレットの全文字が幅 1.0（カテゴリ横断の門番）', () => {
+        for (const c of PALETTE_CATEGORIES) {
+            for (const ch of c.chars) {
+                expect(textWidth(ch), `${c.label} の ${ch}`).toBe(1.0);
+            }
+        }
     });
 });
