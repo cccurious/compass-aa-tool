@@ -62,16 +62,22 @@ export function convert(input: string): ConvertResult {
 
     let padding = '';
     if (!isLast) {
-      // 文字数節約のため全角スペース主体で詰める（LIMIT_SAFE までは行内に留まり
-      // キャリーされない）。端数は半角スペースで LIMIT_FORCE を跨がせ、
-      // 折り返し点で実機側に消してもらう
-      const nFull = Math.max(0, Math.floor(LIMIT_SAFE - contentW));
-      const used = contentW + nFull;
-      // +3 は端数＋幅誤差の安全マージン（約 0.7 字分）。折り返しが半角スペース帯を
-      // 外れて全角スペースや次行頭に当たると Word Wrap 巻き戻し事故になるため、
-      // 帯を厚めに取る。超過行（警告済み）は 0 個で自力折り返しに任せる
+      // パディング構造: 「半角スペース 1 ＋ 全角スペース列 ＋ 半角スペース列」
+      //
+      // 先頭の半角スペース 1 個が肝（インシデント#1/#2 の恒久対策）:
+      // 実機の Word Wrap は半角スペースで「次の半角スペースまでの塊」の幅を先読みし、
+      // 残り幅に入らなければその場で改行する。全角スペースは塊を切らないため、
+      // これが無いとコンテンツ末尾の語（例: jj）に全角スペース列が癒着して
+      // 巨大な 1 語になり、コンテンツ内の手前のスペースで改行されて形が崩れる。
+      //
+      // 全角列は LIMIT_SAFE 以下に収めて行内に留め（文字数節約）、
+      // 半角列で LIMIT_FORCE を跨がせて折り返し点で実機側に消してもらう
+      const nFull = Math.max(0, Math.floor(LIMIT_SAFE - contentW - HALF_SPACE_W));
+      const used = contentW + HALF_SPACE_W + nFull;
+      // +3 は端数＋幅誤差の安全マージン（約 0.7 字分）。
+      // 超過行（警告済み）は詰め物なしで自力折り返しに任せる
       const nHalf = Math.max(0, Math.ceil((LIMIT_FORCE - used) / HALF_SPACE_W) + 3);
-      padding = '　'.repeat(nFull) + ' '.repeat(nHalf);
+      padding = ' ' + '　'.repeat(nFull) + ' '.repeat(nHalf);
     }
 
     lines.push({ source: src, padding });

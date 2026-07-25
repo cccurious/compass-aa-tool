@@ -43,7 +43,32 @@ describe('wrap.simulateWrap（実機規則: 折り返し点の半角スペース
     });
 });
 
+describe('wrap.simulateWrap（語の先読み: インシデント#1/#2 の機構）', () => {
+    it('半角スペース後の語（全角スペース癒着込み）が入らないと、そこで改行される', () => {
+        // R3-2b の予測値。実機検証待ちだが、レトリバー事故を説明する唯一のモデル
+        const lines = simulateWrap('あ'.repeat(18) + ' jj' + '　'.repeat(5) + 'い');
+        expect(lines[0].text).toBe('あ'.repeat(18));
+        expect(lines[1].text).toBe('jj　　　　　い');
+    });
+});
+
 describe('convert', () => {
+    it('レトリバー AA の後ろ足 jj が転落しない（インシデント#1/#2 回帰テスト）', () => {
+        const src = [
+            '.　 　 _',
+            '　　r\'ﾟJヽ ＿__ ____,',
+            '. 　 ｀ヽ　 　 　 }ー\'',
+            '. 　 　 j j＾⌒j jj',
+            '.　 　 ´´ 　 ´´´',
+        ];
+        const result = convert(src.join('\n'));
+        const rendered = result.preview.map((l) => l.text.replace(/[ 　]+$/, ''));
+        expect(rendered).toEqual(src.map((s) => s.replace(/[ 　]+$/, '')));
+    });
+    it('パディングは先頭に半角スペース 1 個を挟む（語の癒着を切る）', () => {
+        const result = convert('あいう\nかきく');
+        expect(result.lines[0].padding).toMatch(/^ 　+ +$/);
+    });
     it('ラウンドトリップ: 出力をシミュレータへ通すと入力行が復元される', () => {
         const src = ['（＾ω＾）', '　＜わっしょい＞', '∪　∪'];
         const result = convert(src.join('\n'));
@@ -58,9 +83,9 @@ describe('convert', () => {
     });
     it('パディングは全角スペース主体で文字数を節約する', () => {
         const result = convert('あいう\nかきく');
-        // 幅 3 の行: 全角 17 個 + 半角数個 ≈ 20 文字前後（半角のみの旧方式は 78 文字超）
-        expect(result.lines[0].padding.length).toBeLessThan(25);
-        expect(result.lines[0].padding).toMatch(/^　+ +$/);
+        // 幅 3 の行: 半角 1 + 全角 16 個 + 半角数個 ≈ 25 文字弱（半角のみの旧方式は 78 文字超）
+        expect(result.lines[0].padding.length).toBeLessThan(28);
+        expect(result.lines[0].padding).toMatch(/^ 　+ +$/);
     });
     it('行頭の半角スペースを警告する（実機では消えるため）', () => {
         const result = convert(' い\nあ');
