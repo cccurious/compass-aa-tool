@@ -1,5 +1,6 @@
 import { LIMIT_SAFE, LIMIT_FORCE, textWidth, charWidth, isKnownWidth } from './metrics';
 import { simulateWrap, SimLine } from './wrap';
+import { normalizeRow, NormalizedChange } from './normalize';
 
 /**
  * 複数行 AA → スペーサー付き 1 行テキスト変換（v1・実機検証済みモデル）。
@@ -37,6 +38,8 @@ export interface ConvertResult {
    * 行の途中が次行へ落ちる（2026-07-25 ⌒ 未収載時に実機で発生）
    */
   unknownWidthLines: { line: number; chars: string[] }[];
+  /** 実機の自動変換を先取りした置換（例: `.` → `．`）。行番号つき */
+  normalizedChanges: NormalizedChange[];
 }
 
 const HALF_SPACE_W = charWidth(' ');
@@ -49,8 +52,14 @@ export function convert(input: string): ConvertResult {
   const unknownWidthLines: { line: number; chars: string[] }[] = [];
   let output = '';
 
-  srcLines.forEach((raw, i) => {
+  const normalizedChanges: NormalizedChange[] = [];
+
+  srcLines.forEach((rawInput, i) => {
     const isLast = i === srcLines.length - 1;
+    // 実機の自動変換（. → ． 等）を先取り。変換後の文字で幅計算しないと
+    // 実機とパディングがずれる（2026-07-25 実機コピーバックで発覚）
+    const { text: raw, changes } = normalizeRow(rawInput, i);
+    normalizedChanges.push(...changes);
     // 半角スペースのみ（または空）の行は折り返し点で丸ごと消えるため、
     // 全角スペース 1 個の「見た目空行」に置き換えて行を存続させる
     const src = /^ *$/.test(raw) ? '　' : raw;
@@ -91,5 +100,6 @@ export function convert(input: string): ConvertResult {
     overflowLines,
     leadingSpaceLines,
     unknownWidthLines,
+    normalizedChanges,
   };
 }
