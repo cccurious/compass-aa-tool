@@ -167,6 +167,17 @@ body {
 }
 .aa-input:focus { border-color: var(--primary-color); }
 
+.char-count {
+    text-align: right;
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: var(--subdued-text);
+    margin-bottom: 8px;
+}
+.char-count.over {
+    color: #dc2626;
+}
+
 /* チャット吹き出し風プレビュー */
 .chat-bubble {
     background: #e8f0e6;

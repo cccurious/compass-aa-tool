@@ -53,11 +53,14 @@ export function convert(input: string): ConvertResult {
 
     let padding = '';
     if (!isLast) {
-      // 確実に折れる幅（LIMIT_FORCE）に到達するまで半角スペースを詰める。
-      // 折り返し点のスペースは実機側で消えるため、詰めすぎの害はない
-      const need = Math.max(0, LIMIT_FORCE - contentW);
-      const count = Math.ceil(need / HALF_SPACE_W) + 1; // +1 は端数の安全マージン
-      padding = ' '.repeat(count);
+      // 文字数節約のため全角スペース主体で詰める（LIMIT_SAFE までは行内に留まり
+      // キャリーされない）。端数は半角スペースで LIMIT_FORCE を跨がせ、
+      // 折り返し点で実機側に消してもらう
+      const nFull = Math.max(0, Math.floor(LIMIT_SAFE - contentW));
+      const used = contentW + nFull;
+      // +1 は端数の安全マージン。超過行（警告済み）は 0 個で自力折り返しに任せる
+      const nHalf = Math.max(0, Math.ceil((LIMIT_FORCE - used) / HALF_SPACE_W) + 1);
+      padding = '　'.repeat(nFull) + ' '.repeat(nHalf);
     }
 
     lines.push({ source: src, padding });

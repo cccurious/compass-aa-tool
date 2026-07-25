@@ -25,6 +25,13 @@ export const LIMIT_FORCE = 20.548;
 /** プレビュー用の代表値（未確定帯の中央。生成側は SAFE/FORCE のみを使う） */
 export const LINE_LIMIT = (LIMIT_SAFE + LIMIT_FORCE) / 2;
 
+/**
+ * 1 メッセージの最大文字数（暫定・2026-07-25 実機観測）。
+ * 半角 a は 196 文字・全角 あ は 184 文字入力できたため、単純な文字数制限では
+ * ない可能性がある（測定方法を確認中）。安全側の 184 を採用。
+ */
+export const MAX_MESSAGE_CHARS = 184;
+
 /** Noto Sans JP で幅 1.0 でない文字の例外マップ（全角=1.0 単位） */
 const EXCEPTIONS: Record<string, number> = noto.widths;
 

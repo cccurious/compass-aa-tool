@@ -47,14 +47,20 @@ describe('convert', () => {
     it('ラウンドトリップ: 出力をシミュレータへ通すと入力行が復元される', () => {
         const src = ['（＾ω＾）', '　＜わっしょい＞', '∪　∪'];
         const result = convert(src.join('\n'));
-        const rendered = result.preview.map((l) => l.text.replace(/ +$/, ''));
-        expect(rendered).toEqual(src);
+        // パディング（行末の全角/半角スペース）は表示に影響しないため除いて比較
+        const rendered = result.preview.map((l) => l.text.replace(/[ 　]+$/, ''));
+        expect(rendered).toEqual(src.map((s) => s.replace(/[ 　]+$/, '')));
     });
-    it('空行は全角スペース 1 個の行として存続する', () => {
+    it('空行は全角スペース行として存続する', () => {
         const result = convert('あ\n\nい');
-        expect(result.preview.map((l) => l.text.replace(/ +$/, ''))).toEqual([
-            'あ', '　', 'い',
-        ]);
+        expect(result.preview).toHaveLength(3);
+        expect(result.preview[1].text.startsWith('　')).toBe(true);
+    });
+    it('パディングは全角スペース主体で文字数を節約する', () => {
+        const result = convert('あいう\nかきく');
+        // 幅 3 の行: 全角 17 個 + 半角数個 ≈ 20 文字前後（半角のみの旧方式は 78 文字超）
+        expect(result.lines[0].padding.length).toBeLessThan(25);
+        expect(result.lines[0].padding).toMatch(/^　+ +$/);
     });
     it('行頭の半角スペースを警告する（実機では消えるため）', () => {
         const result = convert(' い\nあ');

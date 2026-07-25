@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { convert } from '../../core/convert';
-import { CALIBRATED, LINE_LIMIT } from '../../core/metrics';
+import { CALIBRATED, LINE_LIMIT, MAX_MESSAGE_CHARS } from '../../core/metrics';
 
 const SAMPLE = '（＾ω＾）\n＜わっしょい＞\n∪　∪';
 
@@ -69,6 +69,11 @@ export const AaConverterView = () => {
                         )}
                     </section>
 
+                    <div className={`char-count ${Array.from(result.output).length > MAX_MESSAGE_CHARS ? 'over' : ''}`}>
+                        {Array.from(result.output).length} / {MAX_MESSAGE_CHARS} 文字
+                        {Array.from(result.output).length > MAX_MESSAGE_CHARS &&
+                            ' — 上限超過。行数を減らすか行を短くしてください'}
+                    </div>
                     <button className="primary-btn" onClick={handleCopy}>
                         変換テキストをコピー
                     </button>
