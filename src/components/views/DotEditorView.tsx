@@ -1,55 +1,63 @@
 import { useMemo, useRef, useState } from 'react';
-import { useDotStore } from '../../store/useDotStore';
+import {
+    useDotStore,
+    PRESET_PALETTE,
+    MAX_ROWS,
+    MAX_CUSTOM_CHARS,
+} from '../../store/useDotStore';
 import { gridToText, GRID_COLS } from '../../core/grid';
 import { convert } from '../../core/convert';
-import { charWidth, MAX_MESSAGE_CHARS } from '../../core/metrics';
+import { ConversionResult } from '../common/ConversionResult';
 
 interface DotEditorViewProps {
     onSendToConverter: (text: string) => void;
 }
 
 export const DotEditorView = ({ onSendToConverter }: DotEditorViewProps) => {
-    const { grid, palette, brush, setBrush, paint, addPaletteChar, addRow, removeRow, clearAll } =
-        useDotStore();
-    const [newChar, setNewChar] = useState('');
+    const {
+        grid, customPalette, brush, setBrush, beginStroke, paint, endStroke,
+        addPaletteChars, clearCustom, addRow, removeRow, clearAll,
+    } = useDotStore();
+    const [charInput, setCharInput] = useState('');
     const [toast, setToast] = useState('');
     const paintingRef = useRef(false);
 
     const text = useMemo(() => gridToText(grid), [grid]);
-    const outLen = useMemo(
-        () => (text ? Array.from(convert(text).output).length : 0),
-        [text],
-    );
+    const result = useMemo(() => (text ? convert(text) : null), [text]);
 
     const showToast = (msg: string) => {
         setToast(msg);
-        setTimeout(() => setToast(''), 2000);
+        setTimeout(() => setToast(''), 2600);
     };
 
-    const handleAddChar = () => {
-        const chars = Array.from(newChar.trim());
-        const ch = chars[0];
-        if (!ch) return;
-        if (chars.length > 1) {
-            showToast('1 文字だけ入力してください');
-            return;
-        }
-        if (charWidth(ch) !== 1.0) {
-            showToast('全角幅（1.0）の文字のみ使えます');
-            return;
-        }
-        addPaletteChar(ch);
-        setBrush(ch);
-        setNewChar('');
+    const handleAddChars = () => {
+        if (!charInput.trim()) return;
+        const { added, skipped, overflow } = addPaletteChars(charInput);
+        const parts: string[] = [];
+        if (added.length > 0) parts.push(`${added.join('')} を追加`);
+        if (skipped.length > 0) parts.push(`半角など ${skipped.length} 字は対象外`);
+        if (overflow.length > 0) parts.push(`上限 ${MAX_CUSTOM_CHARS} 字のため ${overflow.length} 字は省略`);
+        showToast(parts.length > 0 ? parts.join(' ／ ') : '追加できる新しい全角文字がありません');
+        if (added.length > 0) setCharInput('');
     };
 
-    // タッチドラッグ塗り: 座標からセルを特定する
-    const paintFromPoint = (clientX: number, clientY: number) => {
+    const handleCopy = async () => {
+        if (!result) return;
+        try {
+            await navigator.clipboard.writeText(result.output);
+            showToast('コピーしました！');
+        } catch {
+            showToast('コピーに失敗しました');
+        }
+    };
+
+    // ドラッグ塗り: 座標からセルを特定する
+    const cellAt = (clientX: number, clientY: number): [number, number] | null => {
         const el = document.elementFromPoint(clientX, clientY);
         const cell = el?.closest('[data-cell]');
-        if (!cell) return;
+        if (!cell) return null;
         const [r, c] = (cell as HTMLElement).dataset.cell!.split(',').map(Number);
-        paint(r, c);
+        return [r, c];
     };
 
     return (
@@ -60,10 +68,11 @@ export const DotEditorView = ({ onSendToConverter }: DotEditorViewProps) => {
                     <button
                         className={`dot-palette-btn ${brush === '' ? 'active' : ''}`}
                         onClick={() => setBrush('')}
+                        title="消しゴム"
                     >
                         消
                     </button>
-                    {palette.map((ch) => (
+                    {[...PRESET_PALETTE, ...customPalette].map((ch) => (
                         <button
                             key={ch}
                             className={`dot-palette-btn ${brush === ch ? 'active' : ''}`}
@@ -76,22 +85,31 @@ export const DotEditorView = ({ onSendToConverter }: DotEditorViewProps) => {
                 <div className="dot-add-row">
                     <input
                         className="dot-add-input"
-                        value={newChar}
-                        onChange={(e) => setNewChar(e.target.value)}
-                        placeholder="追加する全角文字"
-                        maxLength={2}
+                        value={charInput}
+                        onChange={(e) => setCharInput(e.target.value)}
+                        placeholder="文章を貼ると全角文字を抽出"
                     />
-                    <button className="bulk-btn" onClick={handleAddChar}>パレットに追加</button>
+                    <button className="bulk-btn" onClick={handleAddChars}>パレットに追加</button>
+                    {customPalette.length > 0 && (
+                        <button className="bulk-btn" onClick={clearCustom}>
+                            追加分を消去（{customPalette.length}）
+                        </button>
+                    )}
+                </div>
+                <div className="dot-hint">
+                    同じ文字のマスをなぞると消去になります。半角文字はマス目に乗らないため除外されます。
                 </div>
             </section>
 
             <section className="card-inputs">
-                <div className="section-title">キャンバス（{GRID_COLS} 列 × {grid.length} 行）</div>
+                <div className="section-title">キャンバス（{GRID_COLS} × {grid.length}）</div>
                 <div
                     className="dot-grid"
                     onPointerDown={(e) => {
+                        const pos = cellAt(e.clientX, e.clientY);
+                        if (!pos) return;
                         paintingRef.current = true;
-                        paintFromPoint(e.clientX, e.clientY);
+                        beginStroke(pos[0], pos[1]);
                         // タッチの暗黙キャプチャを解除してドラッグ塗りを elementFromPoint で追う。
                         // キャプチャが無い場合（マウス等）は NotFoundError になるため握りつぶす
                         try {
@@ -101,10 +119,12 @@ export const DotEditorView = ({ onSendToConverter }: DotEditorViewProps) => {
                         }
                     }}
                     onPointerMove={(e) => {
-                        if (paintingRef.current) paintFromPoint(e.clientX, e.clientY);
+                        if (!paintingRef.current) return;
+                        const pos = cellAt(e.clientX, e.clientY);
+                        if (pos) paint(pos[0], pos[1]);
                     }}
-                    onPointerUp={() => { paintingRef.current = false; }}
-                    onPointerLeave={() => { paintingRef.current = false; }}
+                    onPointerUp={() => { paintingRef.current = false; endStroke(); }}
+                    onPointerLeave={() => { paintingRef.current = false; endStroke(); }}
                 >
                     {grid.map((row, r) => (
                         <div key={r} className="dot-grid-row">
@@ -117,28 +137,30 @@ export const DotEditorView = ({ onSendToConverter }: DotEditorViewProps) => {
                     ))}
                 </div>
                 <div className="bulk-actions">
-                    <button className="bulk-btn" onClick={addRow}>行を追加</button>
-                    <button className="bulk-btn" onClick={removeRow}>行を削除</button>
+                    <button className="bulk-btn" onClick={addRow} disabled={grid.length >= MAX_ROWS}>
+                        行を追加
+                    </button>
+                    <button className="bulk-btn" onClick={removeRow} disabled={grid.length <= 1}>
+                        行を削除
+                    </button>
                     <button className="bulk-btn" onClick={clearAll}>全消去</button>
-                </div>
-                <div className={`char-count ${outLen > MAX_MESSAGE_CHARS ? 'over' : ''}`}>
-                    変換後 {outLen} / {MAX_MESSAGE_CHARS} 文字
-                    {outLen > MAX_MESSAGE_CHARS && ' — 上限超過。行数や右側の余白を減らしてください'}
                 </div>
             </section>
 
-            <button
-                className="primary-btn"
-                onClick={() => {
-                    if (!text) {
-                        showToast('キャンバスが空です');
-                        return;
-                    }
-                    onSendToConverter(text);
-                }}
-            >
-                AA 変換へ送る
-            </button>
+            {result ? (
+                <ConversionResult result={result} onCopy={handleCopy} />
+            ) : (
+                <div className="dot-empty-note">マスをタップして絵を描くと、ここにプレビューが出ます。</div>
+            )}
+
+            {result && (
+                <button
+                    className="secondary-btn"
+                    onClick={() => onSendToConverter(text)}
+                >
+                    テキストとして編集（AA変換へ）
+                </button>
+            )}
 
             <div className={`toast ${toast ? 'show' : ''}`}>{toast}</div>
         </div>

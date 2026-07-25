@@ -4,10 +4,11 @@ import { AaConverterView } from './components/views/AaConverterView';
 import { DotEditorView } from './components/views/DotEditorView';
 import './style.css';
 
-export type ViewId = 'aa' | 'dot';
+export type ViewId = 'dot' | 'aa';
 
 function App() {
-    const [currentView, setCurrentView] = useState<ViewId>('aa');
+    // ドット打ちがこのツールの目玉なので既定ビューにする
+    const [currentView, setCurrentView] = useState<ViewId>('dot');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     // 変換ビューの入力（ドット打ちからの転送を受けるため App レベルで保持）
     const [aaInput, setAaInput] = useState('');
@@ -50,11 +51,11 @@ function App() {
             />
 
             <main className="main-content">
-                <div className={`view-section ${currentView === 'aa' ? 'active' : ''}`}>
-                    <AaConverterView input={aaInput} setInput={setAaInput} />
-                </div>
                 <div className={`view-section ${currentView === 'dot' ? 'active' : ''}`}>
                     <DotEditorView onSendToConverter={handleSendToConverter} />
+                </div>
+                <div className={`view-section ${currentView === 'aa' ? 'active' : ''}`}>
+                    <AaConverterView input={aaInput} setInput={setAaInput} />
                 </div>
             </main>
         </>

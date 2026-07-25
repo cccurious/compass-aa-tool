@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { gridToText, emptyGrid, GRID_COLS } from '../src/core/grid';
-import { textWidth } from '../src/core/metrics';
+import { textWidth, MAX_MESSAGE_CHARS } from '../src/core/metrics';
+import { MAX_ROWS } from '../src/store/useDotStore';
 import { simulateWrap } from '../src/core/wrap';
 import { convert } from '../src/core/convert';
 
@@ -189,5 +190,26 @@ describe('grid.gridToText（ドット打ち→AAテキスト・文字数節約�
         const text = gridToText(grid);
         expect(Array.from(text)).toHaveLength(20);
         expect(convert(text).overflowLines).toEqual([]);
+    });
+});
+
+describe('行数上限（キャンバス設計の根拠・2026-07-25 実測）', () => {
+    const rowsThatFit = (width: number) => {
+        let max = 0;
+        for (let rows = 1; rows <= 20; rows++) {
+            const src = Array.from({ length: rows }, () => '█'.repeat(width)).join('\n');
+            if (Array.from(convert(src).output).length <= MAX_MESSAGE_CHARS) max = rows;
+        }
+        return max;
+    };
+    it('最も密な幅 20 でも 8 行は 184 文字に収まる', () => {
+        expect(rowsThatFit(20)).toBe(8);
+    });
+    it('幅 10 以下でも 1 文字ブレークの底上げが効き 10 行以上入る（崖の解消）', () => {
+        expect(rowsThatFit(10)).toBeGreaterThanOrEqual(10);
+        expect(rowsThatFit(4)).toBeGreaterThanOrEqual(10);
+    });
+    it('物理上限 15 行を超える密度は存在しない（MAX_ROWS の根拠）', () => {
+        for (let w = 1; w <= 20; w++) expect(rowsThatFit(w)).toBeLessThanOrEqual(MAX_ROWS);
     });
 });

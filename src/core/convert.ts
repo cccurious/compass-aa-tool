@@ -76,13 +76,29 @@ export function convert(input: string): ConvertResult {
       const firstWord = nextChars.slice(0, spIdx === -1 ? undefined : spIdx).join('');
       const boundaryKnown =
         unknown.length === 0 && Array.from(firstWord).every((c) => isKnownWidth(c));
-      if (
-        boundaryKnown &&
-        contentW + HALF_SPACE_W + textWidth(firstWord) > LIMIT_FORCE + 0.3
-      ) {
+      const nextW = textWidth(firstWord);
+      if (boundaryKnown && contentW + HALF_SPACE_W + nextW > LIMIT_FORCE + 0.3) {
+        // そのまま発火する境界: 半角スペース 1 個で改行が成立（最安）
         lines.push({ source: src, padding: ' ' });
         output += src + ' ';
         return;
+      }
+      if (boundaryKnown) {
+        // 発火に足りない分だけ全角スペースで底上げしてから改行させる。
+        // 構造は「半角 1 ＋ 全角 n ＋ 半角 1」で、先頭の半角がコンテンツ末尾の語と
+        // 全角列の癒着を切る（これが無いとインシデント#1 の jj 転落が再発する）。
+        // 全角列は行内に留めるだけでよく、LIMIT_SAFE まで埋める必要がない点が
+        // 通常パディング（約 24−幅 文字）との差。幅 10 以下の AA が救われる
+        // （実測: 幅 10 は 7 行が限界だったのに対し幅 11 は 15 行という崖があった）
+        const need = LIMIT_FORCE + 0.3 - contentW - HALF_SPACE_W * 2 - nextW;
+        const nFullTail = Math.max(0, Math.ceil(need));
+        // 全角列を置いても行内に留まること（−0.5 は幅誤差マージン）
+        if (contentW + HALF_SPACE_W + nFullTail <= LIMIT_SAFE - 0.5) {
+          const tail = ' ' + '　'.repeat(nFullTail) + ' ';
+          lines.push({ source: src, padding: tail });
+          output += src + tail;
+          return;
+        }
       }
       // パディング構造: 「半角スペース 1 ＋ 全角スペース列 ＋ 半角スペース列」
       //

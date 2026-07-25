@@ -13,15 +13,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, isOpen, onViewCha
             <div className="menu-header">ツール一覧</div>
             <ul>
                 <li>
-                    <button className={`menu-link ${currentView === 'aa' ? 'active' : ''}`} onClick={() => onViewChange('aa')}>
-                        <span className="menu-link-main">AA変換</span>
-                        <span className="menu-link-sub">貼り付けたAAをチャット用に自動調整</span>
-                    </button>
-                </li>
-                <li>
                     <button className={`menu-link ${currentView === 'dot' ? 'active' : ''}`} onClick={() => onViewChange('dot')}>
                         <span className="menu-link-main">ドット打ちエディタ</span>
                         <span className="menu-link-sub">マス目に文字を置いてAAを作る</span>
+                    </button>
+                </li>
+                <li>
+                    <button className={`menu-link ${currentView === 'aa' ? 'active' : ''}`} onClick={() => onViewChange('aa')}>
+                        <span className="menu-link-main">AA変換</span>
+                        <span className="menu-link-sub">貼り付けたAAをチャット用に自動調整</span>
                     </button>
                 </li>
             </ul>

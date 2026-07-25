@@ -214,12 +214,44 @@ body {
 }
 .dot-add-row {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     margin-top: 12px;
     align-items: center;
 }
+.dot-hint {
+    margin-top: 10px;
+    font-size: 0.75rem;
+    color: var(--subdued-text);
+    line-height: 1.5;
+}
+.dot-empty-note {
+    text-align: center;
+    padding: 20px 16px;
+    font-size: 0.85rem;
+    color: var(--subdued-text);
+}
+.secondary-btn {
+    width: 100%;
+    margin-top: 12px;
+    padding: 14px;
+    background: var(--white);
+    color: var(--dark-border);
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.secondary-btn:active { background: #edf2f7; transform: translateY(1px); }
+.bulk-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
 .dot-add-input {
-    width: 130px;
+    flex: 1;
+    min-width: 130px;
     padding: 8px;
     border: 1px solid var(--border-color);
     border-radius: 6px;
