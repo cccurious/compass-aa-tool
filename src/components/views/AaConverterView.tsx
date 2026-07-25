@@ -30,7 +30,7 @@ export const AaConverterView = ({ input, setInput, onCopied }: AaConverterViewPr
             });
             onCopied();
         } catch {
-            setToast('コピーに失敗しました');
+            setToast('コピーできませんでした。もう一度お試しください');
         }
         setTimeout(() => setToast(''), 2000);
     };

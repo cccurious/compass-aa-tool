@@ -53,9 +53,9 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
         trackPaletteAdd({ added: added.length, skipped: skipped.length });
         const parts: string[] = [];
         if (added.length > 0) parts.push(`${added.join('')} を追加`);
-        if (skipped.length > 0) parts.push(`半角など ${skipped.length} 字は対象外`);
+        if (skipped.length > 0) parts.push(`マス目に置けない ${skipped.length} 字は除外`);
         if (overflow.length > 0) parts.push(`上限 ${MAX_CUSTOM_CHARS} 字のため ${overflow.length} 字は省略`);
-        showToast(parts.length > 0 ? parts.join(' ／ ') : '追加できる新しい全角文字がありません');
+        showToast(parts.length > 0 ? parts.join(' ／ ') : '追加できる文字が見つかりませんでした');
         if (added.length > 0) {
             setCharInput('');
             setCategory('custom');
@@ -77,7 +77,7 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
             });
             onCopied();
         } catch {
-            showToast('コピーに失敗しました');
+            showToast('コピーできませんでした。もう一度お試しください');
         }
     };
 
@@ -131,7 +131,7 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                         className="dot-add-input"
                         value={charInput}
                         onChange={(e) => setCharInput(e.target.value)}
-                        placeholder="文章から文字を取り込む"
+                        placeholder="使いたい文字を含む文章"
                     />
                     <button className="bulk-btn" onClick={handleAddChars}>パレットに追加</button>
                     {customPalette.length > 0 && (
@@ -152,7 +152,7 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                 <div className="section-title">
                     キャンバス（{GRID_COLS} × {grid.length}）
                     <HelpTooltip
-                        text={`横は実機1行に収まる${GRID_COLS}マス固定です。行は${MAX_ROWS}行まで増やせますが、絵が密だと途中で送信の上限に達します。`}
+                        text={`横はチャット1行に収まる${GRID_COLS}マス固定です。縦は${MAX_ROWS}行まで増やせますが、絵が細かいと途中で長さの上限に達します。`}
                     />
                 </div>
                 <div
@@ -210,7 +210,7 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                     className="secondary-btn"
                     onClick={() => onSendToConverter(text)}
                 >
-                    テキストとして編集（AA変換へ）
+                    テキストで細かく調整する
                 </button>
             )}
 

@@ -37,7 +37,7 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
             <section className="card-inputs">
                 <div className="section-title">
                     {title ?? 'チャット表示プレビュー'}
-                    <HelpTooltip text="ゲーム内での見え方を再現しています。緑の枠の幅が実機の1行ぶん（全角20文字）で、この幅を超えると自動で折り返されます。" />
+                    <HelpTooltip text="ゲーム内での見え方を再現しています。緑の枠がチャット1行ぶんの幅（全角20文字）で、ここを超えると自動で折り返されます。" />
                 </div>
                 <div className="chat-bubble">
                     {/* 実機 1 行ぶんの幅（全角 20.5 字）を持つ枠。これを中央に置くことで
@@ -56,7 +56,7 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
                 )}
                 {result.removedLines.length > 0 && (
                     <div className="warn-note">
-                        ⚠️ 実機で消えてしまう文字を取り除きました（
+                        ⚠️ ゲーム内で消えてしまう文字を取り除きました（
                         {result.removedLines
                             .map((u) => `${u.line + 1}行目: ${u.chars.join(' ')}`)
                             .join(' ／ ')}
@@ -65,7 +65,7 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
                 )}
                 {result.filteredSequenceLines.length > 0 && (
                     <div className="warn-note">
-                        ⚠️ 実機で別の文字に置き換わる並びがあります（
+                        ⚠️ ゲーム内で別の文字に変わってしまう並びがあります（
                         {result.filteredSequenceLines
                             .map((u) => `${u.line + 1}行目: ${u.sequences.join(' ')}`)
                             .join(' ／ ')}
@@ -74,17 +74,17 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
                 )}
                 {result.unknownWidthLines.length > 0 && (
                     <div className="warn-note">
-                        ⚠️ 幅が未確認の文字が含まれています（
+                        ⚠️ ゲーム内での幅が未確認の文字が含まれています（
                         {result.unknownWidthLines
                             .map((u) => `${u.line + 1}行目: ${u.chars.join(' ')}`)
                             .join(' ／ ')}
-                        ）。実機で形が崩れる可能性があります。
+                        ）。形が崩れるかもしれません。
                     </div>
                 )}
                 {result.leadingSpaceLines.length > 0 && (
                     <div className="warn-note">
                         ⚠️ {result.leadingSpaceLines.map((n) => n + 1).join(', ')} 行目の行頭に
-                        半角スペースがあります。ゲーム内では消えてしまうため、
+                        半角スペースがあります。ゲーム内では消えてしまうので、
                         字下げには全角スペースを使ってください。
                     </div>
                 )}
@@ -97,7 +97,7 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
                 <HelpTooltip text="1メッセージの上限は文字数ではなくバイト数（全角3・半角1）で512バイトです。超えたぶんは送信時に末尾が切り捨てられます。" />
             </div>
             <button className="primary-btn" onClick={onCopy}>
-                変換テキストをコピー
+                ゲーム用のテキストをコピー
             </button>
         </>
     );
