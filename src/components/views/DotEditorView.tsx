@@ -75,6 +75,7 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                 had_removed_chars: result.removedLines.length > 0,
                 had_unknown_width: result.unknownWidthLines.length > 0,
             });
+            showToast('コピーしました');
             onCopied();
         } catch {
             showToast('コピーできませんでした。もう一度お試しください');

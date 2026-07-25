@@ -28,6 +28,7 @@ export const AaConverterView = ({ input, setInput, onCopied }: AaConverterViewPr
                 had_removed_chars: result.removedLines.length > 0,
                 had_unknown_width: result.unknownWidthLines.length > 0,
             });
+            setToast('コピーしました');
             onCopied();
         } catch {
             setToast('コピーできませんでした。もう一度お試しください');

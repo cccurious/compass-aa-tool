@@ -3,7 +3,6 @@ import { Sidebar } from './components/Sidebar';
 import { AaConverterView } from './components/views/AaConverterView';
 import { DotEditorView } from './components/views/DotEditorView';
 import { GuideView } from './components/views/GuideView';
-import { CopyBanner } from './components/common/CopyBanner';
 import { SupportBanner } from './components/common/SupportBanner';
 import { trackView, trackSendToConverter } from './utils/analytics';
 import './style.css';
@@ -11,8 +10,6 @@ import './style.css';
 export type ViewId = 'dot' | 'aa' | 'guide';
 
 const VIEW_IDS: ViewId[] = ['dot', 'aa', 'guide'];
-
-const SUPPORT_DONE_KEY = 'compass-aa-support-done';
 
 /** ?view= でビューを指定できる（共有・ブックマーク用） */
 const viewFromUrl = (): ViewId => {
@@ -26,13 +23,10 @@ function App() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     // 変換ビューの入力（ドット打ちからの転送を受けるため App レベルで保持）
     const [aaInput, setAaInput] = useState('');
-    const [copied, setCopied] = useState(false);
-    // 応援バナーはコピー案内が引っ込んでから出す（同じ位置に重ねない）。
-    // 一度コピーされたら二度と出さない（BM チェッカーと同じ規則・保存して持ち越す）
+    // 応援バナーは一度コピーされたらそのセッション中は二度と出さない。
+    // 保存はしない（再訪時にはまた出す）＝ BM チェッカーと同じ機構
     const [supportVisible, setSupportVisible] = useState(false);
-    const [supportDone, setSupportDone] = useState(
-        () => localStorage.getItem(SUPPORT_DONE_KEY) === '1',
-    );
+    const [supportDone, setSupportDone] = useState(false);
 
     // 戻る/進むでビューが変わるようにする
     useEffect(() => {
@@ -59,18 +53,14 @@ function App() {
         handleViewChange('aa');
     };
 
+    // コピー完了の知らせは各ビューのトーストに任せ、ここでは応援バナーだけ出す
     const handleCopied = () => {
-        setCopied(true);
-        window.setTimeout(() => {
-            setCopied(false);
-            if (!supportDone) setSupportVisible(true);
-        }, 5000);
+        if (!supportDone) setSupportVisible(true);
     };
 
     const handleSupportClosed = () => {
         setSupportVisible(false);
         setSupportDone(true);
-        localStorage.setItem(SUPPORT_DONE_KEY, '1');
     };
 
     return (
@@ -90,7 +80,6 @@ function App() {
                 </button>
             </header>
 
-            <CopyBanner show={copied} onClose={() => setCopied(false)} />
             <SupportBanner visible={supportVisible} onClosePermanently={handleSupportClosed} />
 
             <Sidebar
