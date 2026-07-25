@@ -57,8 +57,9 @@ describe('convert', () => {
         const result = convert('.　/:あ\nい');
         expect(result.output.startsWith('.　/:あ')).toBe(true);
     });
-    it('パディングは先頭に半角スペース 1 個を挟む（語の癒着を切る）', () => {
-        const result = convert('あいう\nかきく');
+    it('スペース式パディングは先頭に半角スペース 1 個を挟む（語の癒着を切る・半角混じり行）', () => {
+        // 半角 j を含む行は幅が端数になるため全角充填の対象外＝従来経路に入る
+        const result = convert('jあいう\nかきく');
         expect(result.lines[0].padding).toMatch(/^ \u3000+ +$/);
     });
     it('ラウンドトリップ: 出力をシミュレータへ通すと入力行が復元される', () => {
@@ -73,11 +74,10 @@ describe('convert', () => {
         expect(result.preview).toHaveLength(3);
         expect(result.preview[1].text.startsWith('　')).toBe(true);
     });
-    it('パディングは全角スペース主体で文字数を節約する', () => {
+    it('全角のみの行は全角充填（半角スペース 0 個）でパディングされる', () => {
         const result = convert('あいう\nかきく');
-        // 幅 3 の行: 半角 1 + 全角 16 個 + 半角数個 ≈ 25 文字弱（半角のみの旧方式は 78 文字超）
-        expect(result.lines[0].padding.length).toBeLessThan(28);
-        expect(result.lines[0].padding).toMatch(/^ \u3000+ +$/);
+        // 幅 3 → 全角 17 個で行幅ちょうど 20.0（半角スペースは units 16 と高価なため不使用）
+        expect(result.lines[0].padding).toBe('　'.repeat(17));
     });
     it('行頭の半角スペースを警告する（実機では消えるため）', () => {
         const result = convert(' い\nあ');
@@ -110,28 +110,53 @@ describe('convert', () => {
     });
 });
 
-describe('convert: 1 文字ブレーク最適化（語先読み改行の逆用）', () => {
-    it('次行頭の語が残り幅に入らない境界は半角スペース 1 個で改行する', () => {
+describe('convert: 全角充填パディング（units 再校正後の最優先戦略・2026-07-25 実機確認）', () => {
+    it('全角のみの行は全角スペースで幅 20.0 ちょうどに満たし、半角スペースを使わない', () => {
         const src = ['█'.repeat(15), '▓'.repeat(15)];
         const result = convert(src.join('\n'));
-        expect(result.lines[0].padding).toBe(' ');
-        // ラウンドトリップ: シミュレータでも 2 行に割れる
+        expect(result.lines[0].padding).toBe('　'.repeat(5));
+        // ラウンドトリップ: 文字単位折り返しで 2 行に割れる
         const rendered = result.preview.map((l) => l.text.replace(/[ \u3000]+$/, ''));
         expect(rendered).toEqual(src);
-        // 出力は 15+1+15 = 31 文字（通常パディングなら 50 文字超）
-        expect(Array.from(result.output)).toHaveLength(31);
+        // units: 半角スペース式（30+16=46）より安い 35
+        expect(messageUnits(result.output)).toBe(35);
     });
-    it('次行頭の語が小さい境界は通常パディングに回す', () => {
-        const result = convert('あいう\nかきく');
-        expect(result.lines[0].padding.length).toBeGreaterThan(10);
+    it('幅 20 ちょうどの行はパディング 0 文字（境界コスト完全ゼロ）', () => {
+        const result = convert('█'.repeat(20) + '\n' + '▓'.repeat(20));
+        expect(result.lines[0].padding).toBe('');
+        expect(result.preview.map((l) => l.text)).toEqual(['█'.repeat(20), '▓'.repeat(20)]);
     });
-    it('■●等の幾何学図形も 1 文字ブレークが発火する（幅 1.0 実測済み）', () => {
-        const result = convert('■'.repeat(15) + '\n' + '●'.repeat(15));
+    it('レトリバー AA が上限内に収まる（旧: スペース 8 個で 279 units → 実機で切断された）', () => {
+        const src = [
+            '　　　　　　　　　██',
+            '　　　　█　　　████　　　█　　き',
+            '　　　　██　██████　██　　か',
+            '　ん　　████████████　　え',
+            '　た　　███▒▒▓□▒▒███　　お',
+            '　ん　　█▒▒▒▒▓▓▒▒▒▒█',
+            '　か　▒▒　　▜　　　　▜　　▒▒',
+            '　！　　▌　　█　　　　█　　▐',
+            '　　　　　▄▄▄▄▄▄▄▄▄▄',
+        ].join('\n');
+        const result = convert(src);
+        expect(result.output).not.toContain(' ');
+        expect(messageUnits(result.output)).toBe(175);
+        expect(messageUnits(result.output)).toBeLessThanOrEqual(MESSAGE_UNIT_LIMIT);
+    });
+});
+
+describe('convert: 1 文字ブレーク最適化（半角混じり行で継続使用）', () => {
+    it('半角を含む密な境界は半角スペース 1 個で改行する', () => {
+        const src = ['j'.repeat(50), 'j'.repeat(50)];
+        const result = convert(src.join('\n'));
         expect(result.lines[0].padding).toBe(' ');
+        const rendered = result.preview.map((l) => l.text.replace(/[ \u3000]+$/, ''));
+        expect(rendered).toEqual(src);
     });
     it('幅未確認文字を含む境界は誤発火せず通常パディング（U+E000 は恒久的に未確認）', () => {
-        const result = convert(''.repeat(15) + '\n' + '●'.repeat(15));
+        const result = convert(String.fromCharCode(0xe000).repeat(15) + '\n' + '●'.repeat(15));
         expect(result.lines[0].padding.length).toBeGreaterThan(1);
+        expect(result.unknownWidthLines).toHaveLength(1);
     });
 });
 
@@ -167,17 +192,17 @@ describe('行数上限（キャンバス設計の根拠・2026-07-25 実測）',
         }
         return max;
     };
-    // units モデル（半角スペース=16）では改行コストが支配的になり、現行の
-    // スペース依存パディングだと行数はどの密度でも 1 桁に落ちる。
-    // 「全角スペースで行を 20.0 ちょうどに満たしてスペースを使わない」パディングへの
-    // 置き換えで大幅に改善できる見込み（実機プローブ待ち。calibration-plan.md 参照）
-    it('最も密な幅 20 は 7 行まで（8 行は 272 units で 1 unit 超過）', () => {
-        expect(rowsThatFit(20)).toBe(7);
+    // 全角充填パディング（境界あたり 20−幅 units・スペース 0 個）により、
+    // units 上限 271 での行数はどの密度でも 13〜14 行＝物理上限 15 にほぼ並ぶ。
+    // なお文字数は増える方向のトレードオフのため、入力欄の文字数観測値 184 には
+    // 別途近づき得る（カウンタの注意書きが担当）
+    it('最も密な幅 20 は 13 行（境界コスト 0 で 13×20=260 units）', () => {
+        expect(rowsThatFit(20)).toBe(13);
     });
-    it('中間密度でも 6〜9 行（スペース式パディングのコストが支配的）', () => {
-        expect(rowsThatFit(15)).toBe(9);
-        expect(rowsThatFit(10)).toBe(7);
-        expect(rowsThatFit(4)).toBe(6);
+    it('中間・疎の密度でも 13〜14 行入る', () => {
+        expect(rowsThatFit(15)).toBe(13);
+        expect(rowsThatFit(10)).toBe(14);
+        expect(rowsThatFit(4)).toBe(14);
     });
     it('物理上限 15 行を超える密度は存在しない（MAX_ROWS の根拠）', () => {
         for (let w = 1; w <= 20; w++) expect(rowsThatFit(w)).toBeLessThanOrEqual(MAX_ROWS);
@@ -204,22 +229,22 @@ describe('罫線パレット（丸角つき）', () => {
     });
 });
 
-describe('底上げパディング（1 文字ブレークを発火させる構造）', () => {
+describe('底上げパディング（半角混じり行で 1 文字ブレークを発火させる構造）', () => {
     it('構造は「半角 1 ＋ 全角 n ＋ 半角 1」で、先頭の半角が語の癒着を切る', () => {
-        // 幅 8 の行は素では発火しない（8+0.34+8 < しきい値）ので底上げ経路に入る
-        const result = convert('■'.repeat(8) + '\n' + '●'.repeat(8));
+        // 半角 j 入りの幅 8 相当の行は素では発火せず、全角充填の対象でもない
+        const result = convert('j' + '■'.repeat(7) + '\n' + '●'.repeat(8));
         expect(result.lines[0].padding).toMatch(/^ \u3000+ $/);
     });
     it('底上げしてもシミュレータで意図どおり 2 行に割れる', () => {
-        const src = ['■'.repeat(8), '●'.repeat(8)];
+        const src = ['j' + '■'.repeat(7), '●'.repeat(8)];
         const result = convert(src.join('\n'));
         const rendered = result.preview.map((l) => l.text.replace(/[ \u3000]+$/, ''));
         expect(rendered).toEqual(src);
     });
     it('通常パディングより短い（底上げは行内に留める分だけで足りる）', () => {
-        const boosted = convert('■'.repeat(8) + '\n' + '●'.repeat(8)).lines[0].padding.length;
+        const boosted = convert('j' + '■'.repeat(7) + '\n' + '●'.repeat(8)).lines[0].padding.length;
         // 次行が狭いと発火に必要な底上げが増えるため、そちらの方が長くなる
-        const plain = convert('■'.repeat(8) + '\n' + '●').lines[0].padding.length;
+        const plain = convert('j' + '■'.repeat(7) + '\n' + '●').lines[0].padding.length;
         expect(boosted).toBeLessThan(plain);
     });
 });

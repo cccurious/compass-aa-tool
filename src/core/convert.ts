@@ -5,6 +5,7 @@ import {
     textWidth,
     charWidth,
     isKnownWidth,
+    classifyChar,
     UNUSABLE_CHARS,
     FILTERED_SEQUENCES,
 } from './metrics';
@@ -54,6 +55,13 @@ export interface ConvertResult {
 
 const HALF_SPACE_W = charWidth(' ');
 
+/**
+ * 「実測確定で幅ちょうど 1.0」の文字だけか（全角充填パディングの適用条件）。
+ * 幅が正確に整数なので、行幅を 20.0 ぴったりに作れて誤差マージンが要らない。
+ * 半角・幅未確認・実測 0.8 等の端数文字が混ざる行は従来のスペース式へ回す
+ */
+const isExactFull = (c: string) => charWidth(c) === 1.0 && classifyChar(c).verified;
+
 export function convert(input: string): ConvertResult {
     const rawLines = input.replace(/\r\n/g, '\n').split('\n');
     const lines: ConvertResultLine[] = [];
@@ -93,22 +101,47 @@ export function convert(input: string): ConvertResult {
 
         let padding = '';
         if (!isLast) {
+            // 【全角充填パディング】units 再校正後の最優先戦略（2026-07-25）:
+            // 上限は units ≤ 271 で半角スペースは 1 個 16 も食うため、スペースを
+            // 使わない改行が最安になった。行の全文字と次行頭の文字が「実測確定で
+            // 幅ちょうど 1.0」なら、全角スペースで行幅を 20.0 に満たすだけで
+            // 次行頭の文字が文字単位折り返しで自然に落ちる（実機確認済み:
+            // あ×15＋全角 sp×5＋い×20 → い は字下げなしで行頭に立つ）。
+            // 幅誤差ゼロなのでマージン不要: 20 ≤ SAFE(20.476)・20+1 > FORCE(20.548)。
+            // 幅 20 ちょうどの行はパディング 0 文字＝境界コスト完全ゼロ。
+            // 全角の追加は units と同時に文字数も増やすため、全角 16 個以上に
+            // なる境界（=1 文字ブレーク以上のコスト）では発火可能なら半角 1 個を選ぶ
+            const srcChars = Array.from(src);
+            const nextLineChars = Array.from(srcLines[i + 1].text);
+            const zeroOk =
+                srcChars.length <= 20 &&
+                srcChars.every(isExactFull) &&
+                nextLineChars.length > 0 &&
+                isExactFull(nextLineChars[0]);
+            const nZero = 20 - srcChars.length;
+
             // 【1 文字ブレーク最適化】実機の語先読み改行を逆用する（2026-07-25）:
             // 半角スペースの直後の語（次行頭〜次の半角スペースまで・全角スペース込み）が
             // 行の残り幅に入らないなら、その場で改行される。条件を満たす行境界は
             // 半角スペース 1 個だけで改行が成立し、パディング約 20 文字を節約できる。
             // 幅未確認文字が絡む場合は誤発火防止のため通常パディングへ回す
-            const nextChars = Array.from(srcLines[i + 1].text);
-            const spIdx = nextChars.indexOf(' ');
-            const firstWord = nextChars.slice(0, spIdx === -1 ? undefined : spIdx).join('');
+            const spIdx = nextLineChars.indexOf(' ');
+            const firstWord = nextLineChars.slice(0, spIdx === -1 ? undefined : spIdx).join('');
             const boundaryKnown =
                 unknown.length === 0 && Array.from(firstWord).every((c) => isKnownWidth(c));
             const nextW = textWidth(firstWord);
-            if (
-                boundaryKnown &&
-                contentW + HALF_SPACE_W + nextW > LIMIT_FORCE + MARGIN.BREAK_FIRE
-            ) {
-                // そのまま発火する境界: 半角スペース 1 個で改行が成立（最安）
+            const oneCharFires =
+                boundaryKnown && contentW + HALF_SPACE_W + nextW > LIMIT_FORCE + MARGIN.BREAK_FIRE;
+
+            if (zeroOk && (nZero < 16 || !oneCharFires)) {
+                // 全角充填が最安（16 units 未満）か、他に無スペース手段がない
+                const tail = '　'.repeat(nZero);
+                lines.push({ source: src, padding: tail });
+                output += src + tail;
+                return;
+            }
+            if (oneCharFires) {
+                // そのまま発火する境界: 半角スペース 1 個で改行が成立
                 lines.push({ source: src, padding: ' ' });
                 output += src + ' ';
                 return;
