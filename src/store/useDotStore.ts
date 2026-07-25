@@ -83,6 +83,8 @@ interface DotState {
   beginStroke: (row: number, col: number) => void;
   endStroke: () => void;
   paint: (row: number, col: number) => void;
+  /** セルを直接書き戻す（2 本指パン開始時の誤タッチ取り消し用） */
+  setCellValue: (row: number, col: number, value: string) => void;
   addPaletteChars: (text: string) => BulkAddResult;
   clearCustom: () => void;
   addRow: () => void;
@@ -118,6 +120,12 @@ export const useDotStore = create<DotState>()(
       return { strokeErase: erase, grid: putCell(s.grid, row, col, erase ? '' : s.brush) };
     }),
   endStroke: () => set({ strokeErase: null }),
+  setCellValue: (row, col, value) =>
+    set((s) => {
+      if (row < 0 || row >= s.grid.length || col < 0 || col >= GRID_COLS) return s;
+      if (s.grid[row][col] === value) return s;
+      return { grid: putCell(s.grid, row, col, value) };
+    }),
   paint: (row, col) =>
     set((s) => {
       if (row < 0 || row >= s.grid.length || col < 0 || col >= GRID_COLS) return s;

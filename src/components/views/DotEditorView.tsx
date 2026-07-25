@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
     useDotStore,
     PALETTE_CATEGORIES,
@@ -20,7 +20,7 @@ interface DotEditorViewProps {
 export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProps) => {
     const {
         grid, customPalette, recentChars, brush, setBrush, beginStroke, paint, endStroke,
-        addPaletteChars, clearCustom, addRow, removeRow, clearAll,
+        setCellValue, addPaletteChars, clearCustom, addRow, removeRow, clearAll,
     } = useDotStore();
     const [charInput, setCharInput] = useState('');
     const [toast, setToast] = useState('');
@@ -33,6 +33,28 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
     // 1 本指のドラッグがスクロールに取られて塗れなくなるため自前で捌く
     const pointersRef = useRef(new Map<number, { x: number; y: number }>());
     const panRef = useRef<{ x: number; scrollLeft: number } | null>(null);
+    // ストローク開始セルの元の値。2 本指パンの 1 本目が塗ってしまったぶんを戻すため
+    const strokeStartRef = useRef<{ row: number; col: number; prev: string; at: number } | null>(null);
+
+    // 指の記録の掃除は window で行う（グリッド上のハンドラだけだと、指がグリッドの
+    // 外で離れたときに pointerup を取りこぼして記録が残留し、以後ずっと 2 本指と
+    // 誤判定される＝ドット打ち不能になる。実機で発生した事故）
+    useEffect(() => {
+        const release = (e: PointerEvent) => {
+            pointersRef.current.delete(e.pointerId);
+            if (pointersRef.current.size < 2) panRef.current = null;
+            if (pointersRef.current.size === 0) {
+                paintingRef.current = false;
+                endStroke();
+            }
+        };
+        window.addEventListener('pointerup', release);
+        window.addEventListener('pointercancel', release);
+        return () => {
+            window.removeEventListener('pointerup', release);
+            window.removeEventListener('pointercancel', release);
+        };
+    }, [endStroke]);
 
     // 最近使った文字を先頭に、追加した文字は専用カテゴリにまとめる
     const tabs = [
@@ -176,11 +198,22 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                     className="dot-grid"
                     style={zoomed ? { width: '200%' } : undefined}
                     onPointerDown={(e) => {
+                        // キャプチャは解除しない。塗りは座標（elementFromPoint）で追うので
+                        // キャプチャがあっても動き、あれば up/cancel が必ずこの要素へ届く。
+                        // 以前ここで解除していたせいで、グリッド外で離した指の up を
+                        // 取りこぼし「以後ずっと 2 本指扱い」の事故が起きた
                         pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
                         if (pointersRef.current.size >= 2) {
                             // 2 本目が触れた時点でスクロールへ切り替える
                             paintingRef.current = false;
                             endStroke();
+                            // パンのつもりでも 1 本目がセルを塗ってしまっている。
+                            // 直後（300ms 以内）ならその 1 マスを元に戻す
+                            const s0 = strokeStartRef.current;
+                            if (s0 && Date.now() - s0.at < 300) {
+                                setCellValue(s0.row, s0.col, s0.prev);
+                            }
+                            strokeStartRef.current = null;
                             const xs = [...pointersRef.current.values()].map((p) => p.x);
                             panRef.current = {
                                 x: xs.reduce((a, b) => a + b, 0) / xs.length,
@@ -190,15 +223,14 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                         }
                         const pos = cellAt(e.clientX, e.clientY);
                         if (!pos) return;
+                        strokeStartRef.current = {
+                            row: pos[0],
+                            col: pos[1],
+                            prev: useDotStore.getState().grid[pos[0]][pos[1]],
+                            at: Date.now(),
+                        };
                         paintingRef.current = true;
                         beginStroke(pos[0], pos[1]);
-                        // タッチの暗黙キャプチャを解除してドラッグ塗りを elementFromPoint で追う。
-                        // キャプチャが無い場合（マウス等）は NotFoundError になるため握りつぶす
-                        try {
-                            (e.target as Element).releasePointerCapture(e.pointerId);
-                        } catch {
-                            /* キャプチャ未設定なら何もしない */
-                        }
                     }}
                     onPointerMove={(e) => {
                         if (pointersRef.current.has(e.pointerId)) {
@@ -217,19 +249,6 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                         const pos = cellAt(e.clientX, e.clientY);
                         if (pos) paint(pos[0], pos[1]);
                     }}
-                    onPointerUp={(e) => {
-                        pointersRef.current.delete(e.pointerId);
-                        if (pointersRef.current.size < 2) panRef.current = null;
-                        paintingRef.current = false;
-                        endStroke();
-                    }}
-                    onPointerCancel={(e) => {
-                        pointersRef.current.delete(e.pointerId);
-                        if (pointersRef.current.size < 2) panRef.current = null;
-                        paintingRef.current = false;
-                        endStroke();
-                    }}
-                    onPointerLeave={() => { paintingRef.current = false; endStroke(); }}
                 >
                     {grid.map((row, r) => (
                         <div key={r} className="dot-grid-row">
