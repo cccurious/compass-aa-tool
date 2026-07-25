@@ -94,6 +94,15 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
                         ）。間に別の文字を挟むか、並び順を変えてください。
                     </div>
                 )}
+                {result.deviceVariantLines.length > 0 && (
+                    <div className="warn-note">
+                        ⚠️ iOS と Android で見え方が違う文字が含まれています（
+                        {result.deviceVariantLines
+                            .map((u) => `${u.line + 1}行目: ${u.chars.join(' ')}`)
+                            .join(' ／ ')}
+                        ）。送った端末と見る人の端末が違うと形が崩れることがあります。
+                    </div>
+                )}
                 {result.unknownWidthLines.length > 0 && (
                     <div className="warn-note">
                         ⚠️ ゲーム内での幅が未確認の文字が含まれています（

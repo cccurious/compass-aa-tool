@@ -113,7 +113,7 @@ describe('convert', () => {
 
 describe('convert: 全角充填パディング（units 再校正後の最優先戦略・2026-07-25 実機確認）', () => {
     it('全角のみの行は全角スペースで幅 20.0 ちょうどに満たし、半角スペースを使わない', () => {
-        const src = ['█'.repeat(15), '▓'.repeat(15)];
+        const src = ['█'.repeat(15), '▄'.repeat(15)];
         const result = convert(src.join('\n'));
         expect(result.lines[0].padding).toBe('　'.repeat(5));
         // ラウンドトリップ: 文字単位折り返しで 2 行に割れる
@@ -124,9 +124,9 @@ describe('convert: 全角充填パディング（units 再校正後の最優先�
         expect(messageCost(result.output).length).toBe(33.75);
     });
     it('幅 20 ちょうどの行はパディング 0 文字（境界コスト完全ゼロ）', () => {
-        const result = convert('█'.repeat(20) + '\n' + '▓'.repeat(20));
+        const result = convert('█'.repeat(20) + '\n' + '▄'.repeat(20));
         expect(result.lines[0].padding).toBe('');
-        expect(result.preview.map((l) => l.text)).toEqual(['█'.repeat(20), '▓'.repeat(20)]);
+        expect(result.preview.map((l) => l.text)).toEqual(['█'.repeat(20), '▄'.repeat(20)]);
     });
     it('レトリバー AA が上限内に収まる（旧: スペース 8 個で 279 units → 実機で切断された）', () => {
         const src = [
@@ -134,9 +134,9 @@ describe('convert: 全角充填パディング（units 再校正後の最優先�
             '　　　　█　　　████　　　█　　き',
             '　　　　██　██████　██　　か',
             '　ん　　████████████　　え',
-            '　た　　███▒▒▓□▒▒███　　お',
-            '　ん　　█▒▒▒▒▓▓▒▒▒▒█',
-            '　か　▒▒　　▜　　　　▜　　▒▒',
+            '　た　　███▄▄▌□▄▄███　　お',
+            '　ん　　█▄▄▄▄▌▌▄▄▄▄█',
+            '　か　▄▄　　▐　　　　▐　　▄▄',
             '　！　　▌　　█　　　　█　　▐',
             '　　　　　▄▄▄▄▄▄▄▄▄▄',
         ].join('\n');

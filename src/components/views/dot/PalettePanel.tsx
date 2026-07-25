@@ -51,7 +51,7 @@ export const PalettePanel = ({ showToast }: PalettePanelProps) => {
         <section className="card-inputs">
             <h3 className="section-title">
                 パレット
-                <HelpTooltip text="マス目に置く文字を選びます。「4分割」を使うと1マスを2×2の点として扱えるので細かい絵が描けます。一度使った文字は「最近」タブに残るので、そこから選び直せます。" />
+                <HelpTooltip text="マス目に置く文字を選びます。三角（◤◥◣◢）はマスの角から角まで塗るので斜めの輪郭が隣と繋がります。一度使った文字は「最近」タブに残るので、そこから選び直せます。" />
             </h3>
             <div className="dot-tabs">
                 {tabs.map((t) => (

@@ -8,6 +8,7 @@ import {
     classifyChar,
     UNUSABLE_CHARS,
     FILTERED_SEQUENCES,
+    DEVICE_VARIANT_CHARS,
 } from './metrics';
 import { simulateWrap, SimLine } from './wrap';
 
@@ -51,6 +52,8 @@ export interface ConvertResult {
     removedLines: { line: number; chars: string[] }[];
     /** 隣接すると別の文字に置換される並びを含む行 */
     filteredSequenceLines: { line: number; sequences: string[] }[];
+    /** 端末（iOS/Android）で見え方が変わる文字を含む行 */
+    deviceVariantLines: { line: number; chars: string[] }[];
 }
 
 const HALF_SPACE_W = charWidth(' ');
@@ -70,6 +73,7 @@ export function convert(input: string): ConvertResult {
     const unknownWidthLines: { line: number; chars: string[] }[] = [];
     const removedLines: { line: number; chars: string[] }[] = [];
     const filteredSequenceLines: { line: number; sequences: string[] }[] = [];
+    const deviceVariantLines: { line: number; chars: string[] }[] = [];
     let output = '';
 
     // 前処理はここだけで行い、本処理も次行の先読みも「サニタイズ済みの行」しか見ない。
@@ -94,7 +98,15 @@ export function convert(input: string): ConvertResult {
         const seqs = FILTERED_SEQUENCES.filter((seq) => src.includes(seq));
         if (seqs.length > 0) filteredSequenceLines.push({ line: i, sequences: seqs });
         if (/^ /.test(src)) leadingSpaceLines.push(i);
-        const unknown = [...new Set(Array.from(src).filter((c) => !isKnownWidth(c)))];
+        const variants = [...new Set(Array.from(src).filter((c) => DEVICE_VARIANT_CHARS.has(c)))];
+        if (variants.length > 0) deviceVariantLines.push({ line: i, chars: variants });
+        // 端末差の警告を出す文字は、そちらで説明済みなので幅未確認の警告からは外す
+        // （同じ文字で 2 つ警告が並ぶと、どちらに従えばよいか分からなくなる）
+        const unknown = [
+            ...new Set(
+                Array.from(src).filter((c) => !isKnownWidth(c) && !DEVICE_VARIANT_CHARS.has(c)),
+            ),
+        ];
         if (unknown.length > 0) unknownWidthLines.push({ line: i, chars: unknown });
         const contentW = textWidth(src);
         if (contentW > LIMIT_SAFE) overflowLines.push(i);
@@ -202,5 +214,6 @@ export function convert(input: string): ConvertResult {
         unknownWidthLines,
         removedLines,
         filteredSequenceLines,
+        deviceVariantLines,
     };
 }
