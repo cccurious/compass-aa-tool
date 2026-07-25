@@ -1,4 +1,4 @@
-import { charWidth } from './metrics';
+import { charWidth, textWidth } from './metrics';
 import { spaceBreakIndices } from './wrap';
 
 /**
@@ -10,7 +10,10 @@ import { spaceBreakIndices } from './wrap';
  *   - 全角グリフ（幅 1.0 の文字）          = 1
  *   - 半角文字・全角スペース・半角スペース = 0.75
  *   - **改行を発生させた半角スペース       = 6.75**（＝ 0.75 ＋ 改行 1 回ぶんの 6）
- * 上限 B「幅換算」: 全角 1・半角（スペース含む）0.5 の合計 ≤ LIMIT_WIDTH
+ * 上限 B「表示幅」: **実測の文字幅の合計**（textWidth）≤ LIMIT_WIDTH
+ *   当初は「全角 1・半角 0.5」の近似だと考えていたが、T3 プローブ
+ *   （全角 172＋半角 24＝幅換算では 184 ちょうど）が 3 文字切られたことで、
+ *   実際の表示幅（半角は文字ごとに固有の幅）で測っていると判明した。
  * 上限 C「文字数」: 単純な文字数 ≤ LIMIT_CHARS
  *
  * A の要点は「改行したスペースだけが高い」。同じ 10 文字語の連なりでも、
@@ -19,7 +22,8 @@ import { spaceBreakIndices } from './wrap';
  * （S2 プローブ: 221 字・長さ 196・幅 171 が**ちょうど 196 字**で切断された）。
  * 経緯と全データは docs/notes/calibration-plan.md、探索器は scripts/limit-rule-solver.ts。
  */
-export const LIMIT_LENGTH = 196;
+/** 上限 A。T1（197.0 ちょうど）が無傷・T2（197.75）が 1 字切断で [197, 197.75) と確定 */
+export const LIMIT_LENGTH = 197;
 export const LIMIT_WIDTH = 184;
 export const LIMIT_CHARS = 196;
 
@@ -43,22 +47,19 @@ export function messageCost(text: string): MessageCost {
     const chars = Array.from(text);
     const breaks = spaceBreakIndices(text);
     let length = 0;
-    let width = 0;
     let breakSpaces = 0;
     chars.forEach((c, i) => {
         if (c === ' ') {
             const isBreak = breaks.has(i);
             length += isBreak ? BREAK_SPACE_COST : LIGHT_COST;
             if (isBreak) breakSpaces++;
-            width += 0.5;
             return;
         }
         // 全角スペースは「幅 1.0 だが長さは軽い」という実測どおりの二面性を持つ
         const isFullGlyph = c !== '　' && charWidth(c) >= 1.0;
         length += isFullGlyph ? 1 : LIGHT_COST;
-        width += c !== ' ' && charWidth(c) >= 1.0 ? 1 : 0.5;
     });
-    return { length, width, chars: chars.length, breakSpaces };
+    return { length, width: textWidth(text), chars: chars.length, breakSpaces };
 }
 
 export const isOverLimit = (cost: MessageCost): boolean =>

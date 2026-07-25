@@ -51,8 +51,10 @@ describe('送信上限モデル v5（2026-07-26・実機 23 本／切断位置�
     it('重み: 全角グリフ 1・半角/全角スペース/改行しない半角スペース 0.75', () => {
         expect(messageCost('あ a　').length).toBe(1 + 0.75 + 0.75 + 0.75);
     });
-    it('幅換算は全角 1・半角（スペース含む）0.5', () => {
-        expect(messageCost('あ a　').width).toBe(1 + 0.5 + 0.5 + 1);
+    it('上限 B は実測の表示幅そのもの（半角は文字ごとに固有の幅）', () => {
+        // T3（全角 172＋半角 24＝「半角 0.5」換算では 184 ちょうど）が 3 字切られたため、
+        // 幅換算の近似ではなく実幅で測っていると判明した
+        expect(messageCost('あ a　').width).toBeCloseTo(textWidth('あ a　'), 6);
     });
     it('改行を起こした半角スペースだけ 6.75（＝ 0.75 ＋ 改行 6）', () => {
         const c = messageCost('あ'.repeat(20) + ' ' + 'い'.repeat(20));
@@ -87,11 +89,24 @@ describe('送信上限モデル v5（2026-07-26・実機 23 本／切断位置�
         expect(isOverLimit(messageCost(at))).toBe(false);
         expect(isOverLimit(messageCost(at + 'あ'))).toBe(true);
     });
-    it('実測 S1/S5: 改行を多く含む構成でも長さ 196 以内なら無傷', () => {
+    it('実測 S1/S5: 改行を多く含む構成でも長さが上限内なら無傷', () => {
         const s1 =
             Array.from({ length: 7 }, () => '０'.repeat(19)).join(' ') + ' ' + '０'.repeat(15);
         expect(messageCost(s1).breakSpaces).toBe(7);
         expect(isOverLimit(messageCost(s1))).toBe(false);
+    });
+    it('実測 T1/T2: 上限 A は 197.0 は通り 197.75 は通らない', () => {
+        const t1 = [11, 19, 19, 19, 19, 16, 17, 16, 7].map((n) => '０'.repeat(n)).join(' ');
+        expect(messageCost(t1).length).toBe(197);
+        expect(isOverLimit(messageCost(t1))).toBe(false);
+        expect(isOverLimit(messageCost(t1 + 'a'))).toBe(true);
+    });
+    it('実測 T5: 連続スペースで高いのは改行を起こす 1 個だけ', () => {
+        let s = '０'.repeat(19);
+        for (let i = 0; i < 6; i++) s += '  ' + '０'.repeat(19);
+        s += '  ' + '０'.repeat(10);
+        expect(messageCost(s).breakSpaces).toBe(7); // スペースは 14 個あるが改行は 7 回
+        expect(isOverLimit(messageCost(s))).toBe(false);
     });
 });
 
