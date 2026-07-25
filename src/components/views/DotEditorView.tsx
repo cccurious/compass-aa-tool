@@ -27,6 +27,31 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
     const [category, setCategory] = useState(PALETTE_CATEGORIES[0].id);
     // 拡大表示（スマホでマスが小さく狙いにくいため）。等倍が既定なので PC は従来どおり
     const [zoomed, setZoomed] = useState(false);
+    const thumbRef = useRef<HTMLDivElement>(null);
+
+    // スクロール位置インジケータ（iOS はスクロールバーを隠すため自前で描く）。
+    // 2 本指パン中に毎フレーム発火するので、再レンダーせず DOM を直接更新する
+    const updateThumb = () => {
+        const w = wrapRef.current;
+        const t = thumbRef.current;
+        if (!w || !t) return;
+        const ratioW = w.clientWidth / w.scrollWidth;
+        t.style.width = `${ratioW * 100}%`;
+        t.style.left = `${(w.scrollLeft / w.scrollWidth) * 100}%`;
+    };
+
+    const toggleZoom = () => {
+        const w = wrapRef.current;
+        // いま見ている場所（中心）の比率を保ったまま拡大縮小する
+        const center = w ? (w.scrollLeft + w.clientWidth / 2) / w.scrollWidth : 0.5;
+        setZoomed((v) => !v);
+        // 幅のアニメーション（0.25s）が終わってからスクロール位置を合わせる
+        window.setTimeout(() => {
+            const w2 = wrapRef.current;
+            if (w2) w2.scrollLeft = center * w2.scrollWidth - w2.clientWidth / 2;
+            updateThumb();
+        }, 300);
+    };
     const paintingRef = useRef(false);
     const wrapRef = useRef<HTMLDivElement>(null);
     // 2 本指はスクロール、1 本指は描画。ブラウザ任せにすると
@@ -189,11 +214,16 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
             <section className="card-inputs">
                 <h3 className="section-title">
                     キャンバス（{GRID_COLS} × {grid.length}）
+                    {zoomed && <span className="zoom-badge">2倍表示中</span>}
                     <HelpTooltip
                         text={`横はチャット1行に収まる${GRID_COLS}マス固定です。縦は${MAX_ROWS}行まで増やせますが、絵が細かいと途中で長さの上限に達します。スマホでマスが小さいときは「拡大」を押してください（拡大中は2本指で横スクロールできます）。`}
                     />
                 </h3>
-                <div className="dot-grid-wrap" ref={wrapRef}>
+                <div
+                    className={`dot-grid-wrap ${zoomed ? 'zoomed' : ''}`}
+                    ref={wrapRef}
+                    onScroll={updateThumb}
+                >
                 <div
                     className="dot-grid"
                     style={zoomed ? { width: '200%' } : undefined}
@@ -243,6 +273,9 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                                 wrapRef.current.scrollLeft =
                                     panRef.current.scrollLeft - (mid - panRef.current.x);
                             }
+                            // scroll イベント頼みにしない（プログラム的な変更では
+                            // 発火タイミングが環境依存のため、動かした側が更新する）
+                            updateThumb();
                             return;
                         }
                         if (!paintingRef.current) return;
@@ -261,12 +294,17 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                     ))}
                 </div>
                 </div>
+                {zoomed && (
+                    <div className="dot-scrollbar" aria-hidden="true">
+                        <div className="dot-scrollbar-thumb" ref={thumbRef} />
+                    </div>
+                )}
                 <div className="bulk-actions">
                     <button
-                        className="bulk-btn dot-zoom-btn"
-                        onClick={() => setZoomed((v) => !v)}
+                        className={`bulk-btn dot-zoom-btn ${zoomed ? 'active' : ''}`}
+                        onClick={toggleZoom}
                     >
-                        {zoomed ? '縮小' : '拡大'}
+                        {zoomed ? '等倍にもどす' : '拡大'}
                     </button>
                     <button className="bulk-btn" onClick={addRow} disabled={grid.length >= MAX_ROWS}>
                         行を追加

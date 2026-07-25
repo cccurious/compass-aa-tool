@@ -414,6 +414,42 @@ body {
     touch-action: none;
     user-select: none;
     background: #fdfdfd;
+    /* 拡大が「ぬっと」見えるように。これが無いと切替が一瞬で気づけない */
+    transition: width 0.25s ease;
+}
+/* 拡大中は枠色でも状態が分かるようにする */
+.dot-grid-wrap.zoomed { border-color: var(--primary-color); }
+.zoom-badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--primary-color);
+    color: var(--white);
+    font-size: 0.68rem;
+    font-weight: bold;
+    vertical-align: middle;
+}
+/* iOS はスクロールバーを自動で隠すので、位置と「はみ出しがある」ことを自前で示す */
+.dot-scrollbar {
+    position: relative;
+    height: 6px;
+    margin-top: 6px;
+    border-radius: 3px;
+    background: #e2e8f0;
+    overflow: hidden;
+}
+.dot-scrollbar-thumb {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    border-radius: 3px;
+    background: var(--primary-color);
+}
+.dot-zoom-btn.active {
+    background: var(--dark-border);
+    color: var(--primary-color);
+    border-color: var(--dark-border);
 }
 /* 拡大ボタンは狭い画面でだけ出す（PC はもともと十分な大きさなので出さない） */
 .dot-zoom-btn { display: none; }
