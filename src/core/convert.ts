@@ -81,7 +81,10 @@ export function convert(input: string): ConvertResult {
       //
       // 全角列は LIMIT_SAFE 以下に収めて行内に留め（文字数節約）、
       // 半角列で LIMIT_FORCE を跨がせて折り返し点で実機側に消してもらう
-      const nFull = Math.max(0, Math.floor(LIMIT_SAFE - contentW - HALF_SPACE_W));
+      // −1 は幅誤差マージン: 欧文フォールバック等でコンテンツ実幅が計算より
+      // 最大 1.0 字分広くても、全角列の語判定（先読み）が「入らない」に落ちて
+      // 全角列ごと次行へ転落する事故を防ぐ（2026-07-25 レトリバー ´´ 行ずれの対策）
+      const nFull = Math.max(0, Math.floor(LIMIT_SAFE - contentW - HALF_SPACE_W) - 1);
       const used = contentW + HALF_SPACE_W + nFull;
       // +3 は端数＋幅誤差の安全マージン（約 0.7 字分）。
       // 超過行（警告済み）は詰め物なしで自力折り返しに任せる
