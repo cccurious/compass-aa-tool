@@ -10,6 +10,17 @@
     <link rel="icon" href="./favicon.ico" sizes="any">
     <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
     <link rel="apple-touch-icon" href="./apple-touch-icon.png">
+
+    <!-- GA4。BM チェッカーとは別プロパティで管理する。
+         G-XXXXXXXXXX を自分の測定 ID に置き換えると計測が始まる（docs/notes/ga4-setup.md）。
+         SPA なのでビュー切替は src/utils/analytics.ts から手動で page_view を送る。 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXXXXXX', { send_page_view: false });
+    </script>
   </head>
   <body>
     <div id="root"></div>

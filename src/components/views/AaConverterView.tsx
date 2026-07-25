@@ -1,13 +1,16 @@
 import { useMemo, useState } from 'react';
 import { convert } from '../../core/convert';
 import { ConversionResult } from '../common/ConversionResult';
+import { utf8ByteLength, MAX_MESSAGE_BYTES } from '../../core/metrics';
+import { trackCopy } from '../../utils/analytics';
 
 interface AaConverterViewProps {
     input: string;
     setInput: (text: string) => void;
+    onCopied: () => void;
 }
 
-export const AaConverterView = ({ input, setInput }: AaConverterViewProps) => {
+export const AaConverterView = ({ input, setInput, onCopied }: AaConverterViewProps) => {
     const [toast, setToast] = useState('');
 
     const result = useMemo(() => (input ? convert(input) : null), [input]);
@@ -16,7 +19,14 @@ export const AaConverterView = ({ input, setInput }: AaConverterViewProps) => {
         if (!result) return;
         try {
             await navigator.clipboard.writeText(result.output);
-            setToast('コピーしました！');
+            const bytes = utf8ByteLength(result.output);
+            trackCopy({
+                source: 'aa',
+                bytes,
+                lines: result.preview.length,
+                over_limit: bytes > MAX_MESSAGE_BYTES,
+            });
+            onCopied();
         } catch {
             setToast('コピーに失敗しました');
         }

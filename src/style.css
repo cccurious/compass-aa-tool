@@ -147,6 +147,66 @@ body {
     padding: 10px 12px; margin-bottom: 16px; font-size: 0.8rem; font-weight: bold;
     color: #92400e;
 }
+/* ===============================
+   ヘルプ（? アイコン）
+=============================== */
+.help-wrap { position: relative; display: inline-block; margin-left: 6px; vertical-align: middle; }
+.help-icon-btn {
+    width: 18px; height: 18px; padding: 0;
+    border-radius: 50%; border: none; cursor: pointer;
+    background: rgba(255, 255, 255, 0.25); color: inherit;
+    font-size: 0.7rem; font-weight: bold; line-height: 1;
+}
+.help-icon-btn:active { background: rgba(255, 255, 255, 0.45); }
+.help-bubble {
+    position: absolute; top: calc(100% + 8px); left: 50%;
+    z-index: 400; width: max-content; max-width: min(280px, 80vw);
+    padding: 10px 12px; border-radius: 8px;
+    background: rgba(45, 55, 72, 0.97); color: var(--white);
+    font-size: 0.78rem; font-weight: normal; line-height: 1.6; text-align: left;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+/* ===============================
+   コピー完了バナー
+=============================== */
+.copy-banner {
+    position: fixed; top: -80px; left: 10px; right: 10px;
+    background: var(--dark-border); border: 2px solid var(--primary-color);
+    border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    z-index: 320;
+    transition: top 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.copy-banner.show { top: calc(64px + env(safe-area-inset-top, 0px)); }
+.copy-banner-body { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
+.copy-banner-text { flex: 1; color: var(--white); font-size: 0.82rem; font-weight: bold; line-height: 1.4; }
+.copy-banner-close {
+    flex: none; width: 28px; height: 28px; border: none; border-radius: 50%;
+    background: rgba(255,255,255,0.15); color: var(--white);
+    font-size: 1.1rem; line-height: 1; cursor: pointer;
+}
+
+/* ===============================
+   使い方
+=============================== */
+.guide-list { padding-left: 1.3em; font-size: 0.88rem; line-height: 1.85; }
+.guide-list li { margin-bottom: 6px; }
+.guide-note {
+    margin-top: 12px; padding: 10px 12px; border-radius: 6px;
+    background: var(--bg-color); font-size: 0.8rem; line-height: 1.7; color: var(--subdued-text);
+}
+.guide-dl { font-size: 0.85rem; }
+.guide-dl dt {
+    font-weight: bold; color: var(--dark-border);
+    border-left: 3px solid var(--primary-color); padding-left: 8px; margin-top: 16px;
+}
+.guide-dl dt:first-child { margin-top: 0; }
+.guide-dl dd { margin: 6px 0 0 11px; line-height: 1.7; color: var(--text-color); }
+.guide-dl code, .guide-list code {
+    background: var(--bg-color); border: 1px solid var(--border-color);
+    border-radius: 4px; padding: 1px 5px; font-size: 0.95em;
+}
+
 .info-note {
     background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px;
     padding: 8px 12px; margin-top: 12px; font-size: 0.8rem; color: #1e40af;

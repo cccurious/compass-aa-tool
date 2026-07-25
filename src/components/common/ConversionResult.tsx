@@ -1,5 +1,6 @@
 import { ConvertResult } from '../../core/convert';
 import { LINE_LIMIT, MAX_MESSAGE_BYTES, charWidth, utf8ByteLength } from '../../core/metrics';
+import { HelpTooltip } from './HelpTooltip';
 
 /**
  * 幅テーブル駆動の 1 行レンダリング。
@@ -34,7 +35,10 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
     return (
         <>
             <section className="card-inputs">
-                <div className="section-title">{title ?? 'チャット表示プレビュー'}</div>
+                <div className="section-title">
+                    {title ?? 'チャット表示プレビュー'}
+                    <HelpTooltip text="ゲーム内での見え方を再現しています。緑の枠の幅が実機の1行ぶん（全角20文字）で、この幅を超えると自動で折り返されます。" />
+                </div>
                 <div className="chat-bubble">
                     {/* 実機 1 行ぶんの幅（全角 20.5 字）を持つ枠。これを中央に置くことで
                         吹き出し内の左右位置まで実機と同じ見え方になる */}
@@ -90,6 +94,7 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
                 {over
                     ? `上限超過（${bytes} / ${MAX_MESSAGE_BYTES}）— 全角 ${Math.ceil((bytes - MAX_MESSAGE_BYTES) / 3)} 文字ぶん減らしてください`
                     : `残り 全角 ${remainCells} 文字ぶん（${bytes} / ${MAX_MESSAGE_BYTES}）`}
+                <HelpTooltip text="1メッセージの上限は文字数ではなくバイト数（全角3・半角1）で512バイトです。超えたぶんは送信時に末尾が切り捨てられます。" />
             </div>
             <button className="primary-btn" onClick={onCopy}>
                 変換テキストをコピー

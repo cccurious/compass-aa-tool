@@ -8,12 +8,16 @@ import {
 import { gridToText, GRID_COLS } from '../../core/grid';
 import { convert } from '../../core/convert';
 import { ConversionResult } from '../common/ConversionResult';
+import { HelpTooltip } from '../common/HelpTooltip';
+import { utf8ByteLength, MAX_MESSAGE_BYTES } from '../../core/metrics';
+import { trackCopy, trackPaletteAdd } from '../../utils/analytics';
 
 interface DotEditorViewProps {
     onSendToConverter: (text: string) => void;
+    onCopied: () => void;
 }
 
-export const DotEditorView = ({ onSendToConverter }: DotEditorViewProps) => {
+export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProps) => {
     const {
         grid, customPalette, recentChars, brush, setBrush, beginStroke, paint, endStroke,
         addPaletteChars, clearCustom, addRow, removeRow, clearAll,
@@ -46,6 +50,7 @@ export const DotEditorView = ({ onSendToConverter }: DotEditorViewProps) => {
     const handleAddChars = () => {
         if (!charInput.trim()) return;
         const { added, skipped, overflow } = addPaletteChars(charInput);
+        trackPaletteAdd({ added: added.length, skipped: skipped.length });
         const parts: string[] = [];
         if (added.length > 0) parts.push(`${added.join('')} を追加`);
         if (skipped.length > 0) parts.push(`半角など ${skipped.length} 字は対象外`);
@@ -61,7 +66,14 @@ export const DotEditorView = ({ onSendToConverter }: DotEditorViewProps) => {
         if (!result) return;
         try {
             await navigator.clipboard.writeText(result.output);
-            showToast('コピーしました！');
+            const bytes = utf8ByteLength(result.output);
+            trackCopy({
+                source: 'dot',
+                bytes,
+                lines: result.preview.length,
+                over_limit: bytes > MAX_MESSAGE_BYTES,
+            });
+            onCopied();
         } catch {
             showToast('コピーに失敗しました');
         }
@@ -79,7 +91,10 @@ export const DotEditorView = ({ onSendToConverter }: DotEditorViewProps) => {
     return (
         <div>
             <section className="card-inputs">
-                <div className="section-title">パレット</div>
+                <div className="section-title">
+                    パレット
+                    <HelpTooltip text="マス目に置く文字を選びます。「4分割」を使うと1マスを2×2の点として扱えるので細かい絵が描けます。同じ文字のマスをもう一度なぞると消えます。" />
+                </div>
                 <div className="dot-tabs">
                     {tabs.map((t) => (
                         <button
@@ -135,7 +150,12 @@ export const DotEditorView = ({ onSendToConverter }: DotEditorViewProps) => {
             </section>
 
             <section className="card-inputs">
-                <div className="section-title">キャンバス（{GRID_COLS} × {grid.length}）</div>
+                <div className="section-title">
+                    キャンバス（{GRID_COLS} × {grid.length}）
+                    <HelpTooltip
+                        text={`横は実機1行に収まる${GRID_COLS}マス固定です。行は${MAX_ROWS}行まで増やせますが、絵が密だと途中で送信の上限に達します。`}
+                    />
+                </div>
                 <div
                     className="dot-grid"
                     onPointerDown={(e) => {
