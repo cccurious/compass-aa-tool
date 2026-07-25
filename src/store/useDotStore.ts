@@ -1,8 +1,11 @@
 import { create } from 'zustand';
 import { DotGrid, emptyGrid, GRID_COLS } from '../core/grid';
 
-/** プリセットは実機で表示検証済み（C-1〜C-3）の全角文字のみ */
-export const PRESET_PALETTE = ['■', '□', '●', '○', '◆', '◇', '▲', '△', '▼', '▽', '★', '☆', '・', 'ω'];
+/** プリセットは実機で表示検証済みの全角文字のみ（C-1〜C-3・ブロック要素プローブ） */
+export const PRESET_PALETTE = [
+  '█', '▓', '▒', '░', '▌',
+  '■', '□', '●', '○', '◆', '◇', '▲', '△', '▼', '▽', '★', '☆', '・', 'ω',
+];
 
 const INITIAL_ROWS = 5;
 

@@ -100,6 +100,9 @@ const FALLBACK_VERIFIED = new Set(['⌒', '´']);
  */
 const FALLBACK_VERIFIED_RANGES: [number, number][] = [
   [0x2500, 0x257f], // 罫線素片
+  // ブロック要素: 2026-07-25 █▌░▒▓×10 が 20/20/10 の 3 行に折り返し＝全て 1.0
+  // （▌ は見た目半分だが送り幅は全角）
+  [0x2580, 0x259f],
 ];
 
 const inRanges = (cp: number, ranges: [number, number][]) =>

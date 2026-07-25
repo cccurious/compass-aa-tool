@@ -26,6 +26,12 @@ describe('metrics.textWidth（実機校正済み 3 層モデル）', () => {
         expect(textWidth('┏┓┃━')).toBe(4.0);
         expect(convert('┏━┓\n┗━┛').unknownWidthLines).toEqual([]);
     });
+    it('ブロック要素も幅 1.0 で実測済み（█▌░▒▓×10 → 20/20/10 折り返し）', () => {
+        expect(textWidth('█▌░▒▓')).toBe(5.0);
+        const lines = simulateWrap('█▌░▒▓'.repeat(10));
+        expect(lines.map((l) => Array.from(l.text).length)).toEqual([20, 20, 10]);
+        expect(convert('█▓▒░▌\nい').unknownWidthLines).toEqual([]);
+    });
     it('R8 実測の記号は DEVICE_OVERRIDES が BIZ 値に優先する', () => {
         expect(textWidth('|')).toBe(0.29);
         expect(textWidth('=')).toBe(0.54);
