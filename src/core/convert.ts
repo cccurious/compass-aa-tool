@@ -64,6 +64,26 @@ export function convert(input: string): ConvertResult {
 
     let padding = '';
     if (!isLast) {
+      // 【1 文字ブレーク最適化】実機の語先読み改行を逆用する（2026-07-25）:
+      // 半角スペースの直後の語（次行頭〜次の半角スペースまで・全角スペース込み）が
+      // 行の残り幅に入らないなら、その場で改行される。条件を満たす行境界は
+      // 半角スペース 1 個だけで改行が成立し、パディング約 20 文字を節約できる。
+      // 幅未確認文字が絡む場合は誤発火防止のため通常パディングへ回す
+      const nextRaw = srcLines[i + 1];
+      const nextSrc = /^ *$/.test(nextRaw) ? '　' : nextRaw;
+      const nextChars = Array.from(nextSrc);
+      const spIdx = nextChars.indexOf(' ');
+      const firstWord = nextChars.slice(0, spIdx === -1 ? undefined : spIdx).join('');
+      const boundaryKnown =
+        unknown.length === 0 && Array.from(firstWord).every((c) => isKnownWidth(c));
+      if (
+        boundaryKnown &&
+        contentW + HALF_SPACE_W + textWidth(firstWord) > LIMIT_FORCE + 0.3
+      ) {
+        lines.push({ source: src, padding: ' ' });
+        output += src + ' ';
+        return;
+      }
       // パディング構造: 「半角スペース 1 ＋ 全角スペース列 ＋ 半角スペース列」
       //
       // 先頭の半角スペース 1 個が肝（インシデント#1/#2 の恒久対策）:

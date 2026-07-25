@@ -144,6 +144,27 @@ describe('convert', () => {
     });
 });
 
+describe('convert: 1 文字ブレーク最適化（語先読み改行の逆用）', () => {
+    it('次行頭の語が残り幅に入らない境界は半角スペース 1 個で改行する', () => {
+        const src = ['█'.repeat(15), '▓'.repeat(15)];
+        const result = convert(src.join('\n'));
+        expect(result.lines[0].padding).toBe(' ');
+        // ラウンドトリップ: シミュレータでも 2 行に割れる
+        const rendered = result.preview.map((l) => l.text.replace(/[ 　]+$/, ''));
+        expect(rendered).toEqual(src);
+        // 出力は 15+1+15 = 31 文字（通常パディングなら 50 文字超）
+        expect(Array.from(result.output)).toHaveLength(31);
+    });
+    it('次行頭の語が小さい境界は通常パディングに回す', () => {
+        const result = convert('あいう\nかきく');
+        expect(result.lines[0].padding.length).toBeGreaterThan(10);
+    });
+    it('幅未確認文字を含む境界は誤発火せず通常パディング（■は幅未実測）', () => {
+        const result = convert('■'.repeat(15) + '\n' + '●'.repeat(15));
+        expect(result.lines[0].padding.length).toBeGreaterThan(1);
+    });
+});
+
 describe('grid.gridToText（ドット打ち→AAテキスト・文字数節約規則）', () => {
     it('行末の空セルは出力せず、左端・中間の空セルは全角スペースになる', () => {
         const grid = emptyGrid(2);
