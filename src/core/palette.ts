@@ -96,7 +96,10 @@ export const WITHDRAWN_CHARS = UNSAFE_DISPLAY_CHARS;
  */
 export const SUGGEST_CHARS = [
     ...new Set([
-        ...'●○◆◇▲△▼▽▷◀◁▱・ω',
+        // 丸の系統（◊◌◍◔◕◖◗ は実機で表示できないため入れない）
+        ...'●○◉◎◯◦◐◑◒◓',
+        // 四角・ひし形・三角の系統
+        ...'◆◇▲△▼▽▶▷◀◁▱・ω',
         ...'★☆♠♣♥♦♪♭♯♀♂',
         // ↕ は iPhone で半分の幅になるため除外（UNSAFE_DISPLAY_CHARS）
         ...'←↑→↓↔↖↗↘↙⇒⇔⇐⇆⇦⇨',
