@@ -1,6 +1,22 @@
 import { useMemo, useState } from 'react';
 import { convert } from '../../core/convert';
-import { CALIBRATED, LINE_LIMIT, MAX_MESSAGE_CHARS } from '../../core/metrics';
+import { CALIBRATED, LINE_LIMIT, MAX_MESSAGE_CHARS, charWidth } from '../../core/metrics';
+
+/**
+ * 幅テーブル駆動の 1 行レンダリング。
+ * 各文字を実機の実測幅のボックスに入れて並べるため、ブラウザ側のフォントが
+ * 何であっても文字の累積位置＝実機表示と一致する（フォント差によるずれを排除）。
+ */
+const ChatLine = ({ text }: { text: string }) => (
+    <div className="chat-line">
+        {Array.from(text).map((ch, i) => (
+            <span key={i} className="chat-ch" style={{ width: `${charWidth(ch)}em` }}>
+                {ch}
+            </span>
+        ))}
+        {text === '' && ' '}
+    </div>
+);
 
 const SAMPLE = '（＾ω＾）\n＜わっしょい＞\n∪　∪';
 
@@ -51,7 +67,7 @@ export const AaConverterView = () => {
                         <div className="section-title">チャット表示プレビュー</div>
                         <div className="chat-bubble">
                             {result.preview.map((line, i) => (
-                                <div key={i} className="chat-line">{line.text || ' '}</div>
+                                <ChatLine key={i} text={line.text} />
                             ))}
                         </div>
                         {result.overflowLines.length > 0 && (

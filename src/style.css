@@ -193,6 +193,14 @@ body {
     overflow-x: auto;
 }
 .chat-line {
-    white-space: pre;
+    white-space: nowrap;
     min-height: 1.4em;
+}
+/* 幅テーブル駆動の文字ボックス: 累積位置を実機と一致させる */
+.chat-ch {
+    display: inline-block;
+    width: 1em;
+    text-align: center;
+    overflow: visible;
+    vertical-align: bottom;
 }

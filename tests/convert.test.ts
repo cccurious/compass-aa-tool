@@ -3,17 +3,20 @@ import { textWidth } from '../src/core/metrics';
 import { simulateWrap } from '../src/core/wrap';
 import { convert } from '../src/core/convert';
 
-describe('metrics.textWidth（Noto Sans JP 仮説テーブル）', () => {
-    it('全角かな・漢字・全角スペースは 1.0', () => {
+describe('metrics.textWidth（実機校正済み 3 層モデル）', () => {
+    it('層1: かな・漢字・全角記号・全角スペースは固定 1.0（R6-1/2/3 実測）', () => {
         expect(textWidth('あいう')).toBe(3.0);
         expect(textWidth('永　愛')).toBe(3.0);
+        expect(textWidth('＾＿う')).toBe(3.0);
     });
-    it('半角スペースは 0.224（Noto Sans JP 実測。仕様書の 0.5 とは異なる仮説値）', () => {
-        expect(textWidth(' ')).toBeCloseTo(0.224, 4);
+    it('層2: 半角は BIZ UDPGothic のプロポーショナル幅（R5-3/R6-4 実測）', () => {
+        expect(textWidth(' ')).toBeCloseTo(0.3403, 4);
+        expect(textWidth('j')).toBeCloseTo(0.3876, 4);
+        expect(textWidth(',')).toBeCloseTo(0.3164, 4);
     });
-    it('狭幅記号の幅がフォント由来の値になっている', () => {
-        expect(textWidth(',')).toBeCloseTo(0.278, 4);
-        expect(textWidth('\\')).toBeCloseTo(0.392, 4);
+    it('層3: アトラス漏れ文字は全角 1.0 フォールバック（R5-1 で ´=1.0 実測）', () => {
+        expect(textWidth('´')).toBe(1.0);
+        expect(textWidth('⌒')).toBe(1.0);
     });
 });
 
