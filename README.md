@@ -4,7 +4,7 @@
 アスキーアートを作るためのツール。作りたい形の AA を貼り付けると、
 自動改行で形が再現されるようスペーサーを自動挿入した 1 行テキストを生成する。
 
-- 公開: GitHub Pages（main へ push で自動デプロイ）
+- 公開: https://cccurious.com/compass-aa-tool/ （GitHub Pages・main へ push で自動デプロイ）
 - 技術: Vite + React 18 + TypeScript（完全静的）
 
 ## 開発

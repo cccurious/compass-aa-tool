@@ -14,6 +14,17 @@ GitHub Pages で公開（完全静的・サーバなし）。
 | `docs/spec.md` | 当初仕様（ユーザー提供）。**数値は校正前の推定値**で現在は上書き済み |
 | `materials/README.md` | 実機検証データ（スクショ＋入力ペア）の台帳 |
 
+## 公開先
+
+`https://cccurious.com/compass-aa-tool/`（GitHub Pages ＋ カスタムドメイン）。
+BM チェッカー（`/draw-need-bm/`）と同じドメインのサブパスに並ぶ。
+
+- Vite の `base` は `'./'`（相対）。サブパス配信でそのまま動く。
+- **リンクは必ず末尾スラッシュ付きで貼ること**（`/compass-aa-tool/`）。
+  スラッシュ無しだと相対パスの起点が 1 つ上になる。GitHub Pages が
+  リダイレクトで補ってくれるが、依存しない方が安全。
+- OGP・canonical を入れるときの URL もこれ。
+
 ## 不可侵の制約
 
 1. **GitHub Pages 配信のみ**: サーバサイド・外部 API・継続課金要素を持ち込まない。
