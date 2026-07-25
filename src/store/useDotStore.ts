@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { DotGrid, emptyGrid, GRID_COLS } from '../core/grid';
 import { charWidth } from '../core/metrics';
 
@@ -92,7 +93,9 @@ interface DotState {
 const putCell = (grid: DotGrid, row: number, col: number, value: string): DotGrid =>
   grid.map((r, ri) => (ri === row ? r.map((c, ci) => (ci === col ? value : c)) : r));
 
-export const useDotStore = create<DotState>((set, get) => ({
+export const useDotStore = create<DotState>()(
+  persist(
+    (set, get) => ({
   grid: emptyGrid(INITIAL_ROWS),
   customPalette: [],
   recentChars: [],
@@ -159,4 +162,12 @@ export const useDotStore = create<DotState>((set, get) => ({
     ),
   removeRow: () => set((s) => (s.grid.length > 1 ? { grid: s.grid.slice(0, -1) } : s)),
   clearAll: () => set((s) => ({ grid: emptyGrid(s.grid.length) })),
-}));
+    }),
+    {
+      name: 'compass-aa-dot',
+      // パレット関連だけ保存する。描きかけのグリッドは保存しない
+      // （次に開いたとき前回の絵が残っていると驚くため）
+      partialize: (s) => ({ recentChars: s.recentChars, customPalette: s.customPalette }),
+    },
+  ),
+);

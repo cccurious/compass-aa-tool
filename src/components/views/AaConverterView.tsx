@@ -2,8 +2,6 @@ import { useMemo, useState } from 'react';
 import { convert } from '../../core/convert';
 import { ConversionResult } from '../common/ConversionResult';
 
-const SAMPLE = '（＾ω＾）\n＜わっしょい＞\n∪　∪';
-
 interface AaConverterViewProps {
     input: string;
     setInput: (text: string) => void;
@@ -33,12 +31,14 @@ export const AaConverterView = ({ input, setInput }: AaConverterViewProps) => {
                     className="aa-input"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder={`作りたい形のAAを複数行で入力\n例:\n${SAMPLE}`}
+                    placeholder={
+                        'ここに AA を貼り付け（改行したままで OK）\n' +
+                        'ゲーム内で同じ形に見えるよう自動で調整します'
+                    }
                     rows={8}
                     spellCheck={false}
                 />
                 <div className="bulk-actions">
-                    <button className="bulk-btn" onClick={() => setInput(SAMPLE)}>サンプル</button>
                     <button className="bulk-btn" onClick={() => setInput('')}>クリア</button>
                 </div>
             </section>
