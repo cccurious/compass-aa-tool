@@ -159,8 +159,12 @@ describe('convert: 1 文字ブレーク最適化（語先読み改行の逆用�
         const result = convert('あいう\nかきく');
         expect(result.lines[0].padding.length).toBeGreaterThan(10);
     });
-    it('幅未確認文字を含む境界は誤発火せず通常パディング（■は幅未実測）', () => {
+    it('■●等の幾何学図形も 1 文字ブレークが発火する（幅 1.0 実測済み）', () => {
         const result = convert('■'.repeat(15) + '\n' + '●'.repeat(15));
+        expect(result.lines[0].padding).toBe(' ');
+    });
+    it('幅未確認文字（ω 等）を含む境界は誤発火せず通常パディング', () => {
+        const result = convert('ω'.repeat(15) + '\n' + '●'.repeat(15));
         expect(result.lines[0].padding.length).toBeGreaterThan(1);
     });
 });
