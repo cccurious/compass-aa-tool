@@ -1,5 +1,11 @@
 import { ConvertResult } from '../../core/convert';
-import { LINE_LIMIT, MAX_MESSAGE_BYTES, charWidth, utf8ByteLength } from '../../core/metrics';
+import {
+    LINE_LIMIT,
+    MESSAGE_UNIT_LIMIT,
+    INPUT_FIELD_CHARS_OBSERVED,
+    charWidth,
+    messageUnits,
+} from '../../core/metrics';
 import { HelpTooltip } from './HelpTooltip';
 
 /**
@@ -27,11 +33,12 @@ interface ConversionResultProps {
 
 /** プレビュー・警告・文字数カウンタ・コピーボタン（貼り付け／ドット打ち共通） */
 export const ConversionResult = ({ result, onCopy, title }: ConversionResultProps) => {
-    // 実機の上限は文字数ではなく UTF-8 バイト（全角 3・半角 1）
-    const bytes = utf8ByteLength(result.output);
-    const over = bytes > MAX_MESSAGE_BYTES;
-    // 残量は「全角であと何文字置けるか」で示す（利用者の感覚に近い）
-    const remainCells = Math.floor((MAX_MESSAGE_BYTES - bytes) / 3);
+    // 実機の上限は「重み付き文字数」（通常 1・半角スペースのみ 16）。units ＝ 全角換算
+    const units = messageUnits(result.output);
+    const over = units > MESSAGE_UNIT_LIMIT;
+    // 入力欄の打鍵段階には別の文字数制限（観測 184）もあるため、迫ったら注意書き
+    const nearInputCap =
+        !over && Array.from(result.output).length > INPUT_FIELD_CHARS_OBSERVED.fullWidth - 4;
     return (
         <>
             <section className="card-inputs">
@@ -93,9 +100,13 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
 
             <div className={`char-count ${over ? 'over' : ''}`}>
                 {over
-                    ? `上限超過（${bytes} / ${MAX_MESSAGE_BYTES}）— 全角 ${Math.ceil((bytes - MAX_MESSAGE_BYTES) / 3)} 文字ぶん減らしてください`
-                    : `残り 全角 ${remainCells} 文字ぶん（${bytes} / ${MAX_MESSAGE_BYTES}）`}
-                <HelpTooltip text="1メッセージの上限は文字数ではなくバイト数（全角3・半角1）で512バイトです。超えたぶんは送信時に末尾が切り捨てられます。" />
+                    ? `上限超過（${units} / ${MESSAGE_UNIT_LIMIT}）— 全角 ${units - MESSAGE_UNIT_LIMIT} 文字ぶん減らしてください`
+                    : nearInputCap
+                      ? `残り 全角 ${MESSAGE_UNIT_LIMIT - units} 文字ぶん（${units} / ${MESSAGE_UNIT_LIMIT}）※文字数も入力欄の上限付近です`
+                      : `残り 全角 ${MESSAGE_UNIT_LIMIT - units} 文字ぶん（${units} / ${MESSAGE_UNIT_LIMIT}）`}
+                <HelpTooltip
+                    text={`1メッセージの上限は全角換算で ${MESSAGE_UNIT_LIMIT} 文字ぶんです。ほとんどの文字は 1 文字ぶんですが、改行の代わりに入る半角スペースだけは 1 個で全角 16 文字ぶんを消費します。超えたぶんは送信時に末尾が切り捨てられます。`}
+                />
             </div>
             <button className="primary-btn" onClick={onCopy}>
                 ゲーム用のテキストをコピー

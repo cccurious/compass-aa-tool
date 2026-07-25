@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { gridToText, emptyGrid, GRID_COLS } from '../src/core/grid';
-import { textWidth, MAX_MESSAGE_BYTES, utf8ByteLength } from '../src/core/metrics';
+import { textWidth, MESSAGE_UNIT_LIMIT, messageUnits } from '../src/core/metrics';
 import { MAX_ROWS } from '../src/store/useDotStore';
 import { simulateWrap } from '../src/core/wrap';
 import { convert } from '../src/core/convert';
@@ -163,16 +163,21 @@ describe('行数上限（キャンバス設計の根拠・2026-07-25 実測）',
         let max = 0;
         for (let rows = 1; rows <= 20; rows++) {
             const src = Array.from({ length: rows }, () => '█'.repeat(width)).join('\n');
-            if (utf8ByteLength(convert(src).output) <= MAX_MESSAGE_BYTES) max = rows;
+            if (messageUnits(convert(src).output) <= MESSAGE_UNIT_LIMIT) max = rows;
         }
         return max;
     };
-    it('最も密な幅 20 でも 8 行は 184 文字に収まる', () => {
-        expect(rowsThatFit(20)).toBe(8);
+    // units モデル（半角スペース=16）では改行コストが支配的になり、現行の
+    // スペース依存パディングだと行数はどの密度でも 1 桁に落ちる。
+    // 「全角スペースで行を 20.0 ちょうどに満たしてスペースを使わない」パディングへの
+    // 置き換えで大幅に改善できる見込み（実機プローブ待ち。calibration-plan.md 参照）
+    it('最も密な幅 20 は 7 行まで（8 行は 272 units で 1 unit 超過）', () => {
+        expect(rowsThatFit(20)).toBe(7);
     });
-    it('幅 10 以下でも 1 文字ブレークの底上げが効き 10 行以上入る（崖の解消）', () => {
-        expect(rowsThatFit(10)).toBeGreaterThanOrEqual(10);
-        expect(rowsThatFit(4)).toBeGreaterThanOrEqual(10);
+    it('中間密度でも 6〜9 行（スペース式パディングのコストが支配的）', () => {
+        expect(rowsThatFit(15)).toBe(9);
+        expect(rowsThatFit(10)).toBe(7);
+        expect(rowsThatFit(4)).toBe(6);
     });
     it('物理上限 15 行を超える密度は存在しない（MAX_ROWS の根拠）', () => {
         for (let w = 1; w <= 20; w++) expect(rowsThatFit(w)).toBeLessThanOrEqual(MAX_ROWS);

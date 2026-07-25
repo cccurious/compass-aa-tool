@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { charWidth, isKnownWidth, classifyChar, textWidth } from '../src/core/metrics';
+import {
+    charWidth,
+    isKnownWidth,
+    classifyChar,
+    textWidth,
+    messageUnits,
+    MESSAGE_UNIT_LIMIT,
+} from '../src/core/metrics';
 import { PALETTE_CATEGORIES, SUGGEST_CHARS } from '../src/core/palette';
 
 /**
@@ -43,6 +50,23 @@ describe('実機校正済みの 3 層モデル', () => {
     it('ஐ は削除されず幅 0（2026-07-25 実測。見えない終端ガード候補）', () => {
         expect(textWidth('ஐ')).toBe(0);
         expect(classifyChar('ஐ').verified).toBe(true);
+    });
+});
+
+describe('メッセージ上限の units モデル（2026-07-25 再々校正・プローブ 19 本）', () => {
+    it('半角スペース以外は全半角問わず 1、半角スペースは 16', () => {
+        expect(messageUnits('あa█ ')).toBe(1 + 1 + 1 + 16);
+    });
+    it('レトリバー実測: 全文（非 sp 151 + sp 8）は 279 units で上限超。切断された残存部分（非 sp 143 + sp 8）はちょうど 271', () => {
+        expect(messageUnits('０'.repeat(151) + ' '.repeat(8))).toBe(279);
+        expect(messageUnits('０'.repeat(143) + ' '.repeat(8))).toBe(MESSAGE_UNIT_LIMIT);
+    });
+    it('あ×176（UTF-8 528 バイト）は実機無傷 ＝ 旧 512 バイト説の反証', () => {
+        expect(messageUnits('あ'.repeat(176))).toBeLessThanOrEqual(MESSAGE_UNIT_LIMIT);
+    });
+    it('P9 実測: 数字 175 + sp6 = 271 でちょうど上限、176 個目から切られる', () => {
+        expect(messageUnits('０'.repeat(175) + ' '.repeat(6))).toBe(MESSAGE_UNIT_LIMIT);
+        expect(messageUnits('０'.repeat(176) + ' '.repeat(6))).toBe(MESSAGE_UNIT_LIMIT + 1);
     });
 });
 

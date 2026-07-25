@@ -29,21 +29,35 @@ export const LINE_LIMIT = (LIMIT_SAFE + LIMIT_FORCE) / 2;
 /**
  * 入力欄が受け付ける文字数の観測値（**送信判定には使わない**）。
  * 半角 a は 196 文字で入力停止・全角 あ は IME 確定時に 184 文字へ切り詰められた。
- * 送信後に残るかどうかは MAX_MESSAGE_BYTES（UTF-8 512 バイト）が決めるので、
- * 上限判定には必ずそちらを使うこと。ここは経緯を残すためだけの定数。
+ * これは打鍵段階の別制限で規則は未特定。送信後に残るかは messageUnits() が決める。
+ * 本ツールの出力は units 上限に先に当たるため実害はほぼ無いが、
+ * 文字数が INPUT_FIELD_CHARS_OBSERVED.fullWidth に迫る出力には注意書きを出す。
  */
 export const INPUT_FIELD_CHARS_OBSERVED = { halfWidth: 196, fullWidth: 184 } as const;
 
 /**
- * 1 メッセージの上限は **UTF-8 で 512 バイト**（2026-07-25 確定）。
- * 文字数ではないため、全角ばかりだと 170 文字で頭打ちになる一方、
- * 半角を多く含む文なら 180 文字を超えても通る（「超過と出たのに表示された」の正体）。
+ * 1 メッセージの上限（2026-07-25 再々校正・プローブ 19 本で確定）。
+ * バイト数でも文字数でもなく**重み付き文字数（units）**:
+ *   - 半角スペース以外の文字 = 種別・全半角問わず 1
+ *   - 半角スペース = SPACE_UNITS（16。自身の 1 を含む）
+ * units が MESSAGE_UNIT_LIMIT を超えた分は、入力欄の確定時に末尾から切り捨てられる。
  *
- * 根拠: 184 文字（524 バイト）のドット絵を送ると先頭 180 文字だけが残り、
- * その 180 文字は **ちょうど 512 バイト**だった（181 文字目まで入れると 515 バイト）。
- * 全角 = 3 バイト・半角 = 1 バイトなので、パディングの半角スペースは非常に安い。
+ * 根拠（挟み撃ち）: スペース 8 個のドット絵は非 sp 文字 143 個で切断（C−8k=143）、
+ * スペース 6 個の数字ものさしは 175 個で切断（C−6k=175）→ k=16・C=271。
+ * あ×176（UTF-8 528 バイト）が無傷で通るため**旧 512 バイト説は反証済み**。
+ * 詳細は calibration-plan.md「メッセージ上限の再々校正」。
+ *
+ * 含意: 改行に使う半角スペース 1 個 ＝ 全角 16 文字ぶんの予算を食う。
  */
-export const MAX_MESSAGE_BYTES = 512;
+export const MESSAGE_UNIT_LIMIT = 271;
+export const SPACE_UNITS = 16;
+
+/** 実機の上限判定に使う重み付き文字数（全角換算とほぼ同義） */
+export function messageUnits(text: string): number {
+    let units = 0;
+    for (const ch of text) units += ch === ' ' ? SPACE_UNITS : 1;
+    return units;
+}
 
 /**
  * 生成側の安全マージン（実機モデル由来の数値なのでここに集約する）。
@@ -62,7 +76,7 @@ export const MARGIN = {
     TAIL_UNKNOWN: 3,
 } as const;
 
-/** UTF-8 でのバイト長（実機の上限判定はこの値で行う） */
+/** UTF-8 でのバイト長（GA4 の計測用。上限判定には messageUnits を使う） */
 export function utf8ByteLength(text: string): number {
     return new TextEncoder().encode(text).length;
 }

@@ -1,4 +1,4 @@
-import { MAX_MESSAGE_BYTES } from '../../core/metrics';
+import { MESSAGE_UNIT_LIMIT } from '../../core/metrics';
 import { GRID_COLS } from '../../core/grid';
 import { MAX_ROWS } from '../../store/useDotStore';
 
@@ -38,9 +38,10 @@ export const GuideView = () => (
             <dl className="guide-dl">
                 <dt>1 回に送れる長さの上限</dt>
                 <dd>
-                    ゲーム側の上限は文字数ではなく「バイト数」で、{MAX_MESSAGE_BYTES}{' '}
-                    バイトまでです（全角は 3・半角は 1 と数えます）。 そのため全角だけなら約 170
-                    文字、半角を多く含むならもっと入ります。
+                    ゲーム側の上限は全角換算で {MESSAGE_UNIT_LIMIT}{' '}
+                    文字ぶんです。ほとんどの文字は全半角問わず 1
+                    文字ぶんですが、行の折り返しに使う半角スペースだけは 1 個で全角 16
+                    文字ぶんを消費します（つまり行数が多いほど上限が早く来ます）。
                     残量はコピーボタンの上に表示しています。
                 </dd>
 
@@ -48,7 +49,7 @@ export const GuideView = () => (
                 <dd>
                     これを超えると勝手に折り返されて形が崩れます。 キャンバスが {GRID_COLS}{' '}
                     列なのはこのためです。 行数は最大 {MAX_ROWS} 行ですが、絵の密度によっては
-                    途中でバイト上限に達します。
+                    途中で長さの上限に達します。
                 </dd>
 
                 <dt>形が崩れるかもしれない文字</dt>
