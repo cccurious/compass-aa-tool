@@ -38,18 +38,26 @@ gtag('config', 'G-XXXXXXXXXX', { send_page_view: false });
 3. ビューを切り替える・コピーするとイベントが流れてくる。
    （広告ブロッカーが有効だと送信されないので、確認時は無効化する）
 
-## 送っているイベント
+## 計測している場所（どのコードが何を送るか）
 
-| イベント | 送信タイミング | パラメータ |
-|---|---|---|
-| `page_view` | ビュー切替（手動送信） | `page_title` = dot / aa / guide |
-| `copy_aa` | コピー成功時（このツールの完了地点） | `source`（dot/aa）・`bytes`・`lines`・`over_limit` |
-| `send_to_converter` | ドット打ちから AA 変換へ送ったとき | `lines` |
-| `palette_add` | パレットへ文字を追加したとき | `added`・`skipped` |
-| `blocked_chars` | 実機で消える文字・置換される並びを入力したとき | `kind`・`chars` |
+送信は必ず `src/utils/analytics.ts` を経由する。gtag が無い環境（未設定・広告ブロック）
+では黙って何もしないので、呼び出し側で存在確認をしない。
 
-`copy_aa` の `source` で「ドット打ちと貼り付け、どちらが使われているか」、
-`over_limit` で「上限に引っかかる人がどれくらいいるか」が分かる。
+| イベント | 送る場所 | 発火タイミング | パラメータ | 何が分かるか |
+|---|---|---|---|---|
+| `page_view` | `App.tsx` の `useEffect([currentView])` | ビューが切り替わったとき（初回表示も含む） | `page_title` = dot / aa / guide | どの画面が使われているか。使い方を読む人の割合 |
+| `copy_aa` | `DotEditorView.handleCopy` / `AaConverterView.handleCopy` | クリップボードへの書き込みが**成功**したとき | `source`(dot/aa)・`bytes`・`lines`・`over_limit`・`had_removed_chars`・`had_unknown_width` | **このツールの完了地点**。作り方の比率、上限に当たる割合、警告を出したまま完了した割合 |
+| `send_to_converter` | `App.handleSendToConverter` | ドット打ちから「テキストとして編集」を押したとき | `lines` | 2 画面をまたぐ導線が使われているか |
+| `palette_add` | `DotEditorView.handleAddChars` | 「パレットに追加」を押したとき | `added`・`skipped` | どれだけ独自の文字が求められているか。`skipped` が多ければ半角を入れようとしている＝案内不足 |
+| `support_action` | `SupportBanner.handleCopy` | 応援コードをコピーしたとき | `action_type` = copy_code | 応援導線の効果 |
+
+### 設計の意図
+
+- **警告の有無はコピー時に 1 回だけ送る**（`had_removed_chars` / `had_unknown_width`）。
+  警告が出た瞬間に送ると、入力のたびに再描画で何度も発火して回数が意味を失うため、
+  「その状態のまま完了したか」を完了イベントに持たせている。
+- **失敗は送っていない**。クリップボード拒否はブラウザの権限依存で、
+  ツールの改善材料にならないため。必要になったら `copy_failed` を足す。
 
 ## 注意
 

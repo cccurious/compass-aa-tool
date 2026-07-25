@@ -1,6 +1,7 @@
 import {
   LIMIT_SAFE,
   LIMIT_FORCE,
+  MARGIN,
   textWidth,
   charWidth,
   isKnownWidth,
@@ -54,7 +55,7 @@ export interface ConvertResult {
 const HALF_SPACE_W = charWidth(' ');
 
 export function convert(input: string): ConvertResult {
-  const srcLines = input.replace(/\r\n/g, '\n').split('\n');
+  const rawLines = input.replace(/\r\n/g, '\n').split('\n');
   const lines: ConvertResultLine[] = [];
   const overflowLines: number[] = [];
   const leadingSpaceLines: number[] = [];
@@ -63,23 +64,27 @@ export function convert(input: string): ConvertResult {
   const filteredSequenceLines: { line: number; sequences: string[] }[] = [];
   let output = '';
 
-  srcLines.forEach((rawInput, i) => {
-    const isLast = i === srcLines.length - 1;
-    // 実機で消える文字は先に取り除く（残すと送信時に欠けて形が崩れるため、
-    // プレビュー＝実機を保つには変換側で落とすのが正しい）
-    const removed = [...new Set(Array.from(rawInput).filter((c) => UNUSABLE_CHARS.has(c)))];
-    const raw =
+  // 前処理はここだけで行い、本処理も次行の先読みも「サニタイズ済みの行」しか見ない。
+  // 生の行を先読みすると、送信時に消える文字の幅まで数えて 1 文字ブレークが
+  // 誤発火・不発火する（インシデント #1/#2 と同型の行転落になる）
+  const srcLines = rawLines.map((raw) => {
+    const removed = [...new Set(Array.from(raw).filter((c) => UNUSABLE_CHARS.has(c)))];
+    const stripped =
       removed.length > 0
-        ? Array.from(rawInput).filter((c) => !UNUSABLE_CHARS.has(c)).join('')
-        : rawInput;
-    if (removed.length > 0) removedLines.push({ line: i, chars: removed });
-    const seqs = FILTERED_SEQUENCES.filter((s) => raw.includes(s));
-    if (seqs.length > 0) filteredSequenceLines.push({ line: i, sequences: seqs });
-    // 注: 半角 . / : はコピー時にのみ全角化される（表示は半角のまま）ため、
-    // 置換の先取りはしない（一度実装して誤診と判明・撤回。normalize.ts 参照）
+        ? Array.from(raw)
+            .filter((c) => !UNUSABLE_CHARS.has(c))
+            .join('')
+        : raw;
     // 半角スペースのみ（または空）の行は折り返し点で丸ごと消えるため、
     // 全角スペース 1 個の「見た目空行」に置き換えて行を存続させる
-    const src = /^ *$/.test(raw) ? '　' : raw;
+    return { text: /^ *$/.test(stripped) ? '　' : stripped, removed };
+  });
+
+  srcLines.forEach(({ text: src, removed }, i) => {
+    const isLast = i === srcLines.length - 1;
+    if (removed.length > 0) removedLines.push({ line: i, chars: removed });
+    const seqs = FILTERED_SEQUENCES.filter((seq) => src.includes(seq));
+    if (seqs.length > 0) filteredSequenceLines.push({ line: i, sequences: seqs });
     if (/^ /.test(src)) leadingSpaceLines.push(i);
     const unknown = [...new Set(Array.from(src).filter((c) => !isKnownWidth(c)))];
     if (unknown.length > 0) unknownWidthLines.push({ line: i, chars: unknown });
@@ -93,15 +98,13 @@ export function convert(input: string): ConvertResult {
       // 行の残り幅に入らないなら、その場で改行される。条件を満たす行境界は
       // 半角スペース 1 個だけで改行が成立し、パディング約 20 文字を節約できる。
       // 幅未確認文字が絡む場合は誤発火防止のため通常パディングへ回す
-      const nextRaw = srcLines[i + 1];
-      const nextSrc = /^ *$/.test(nextRaw) ? '　' : nextRaw;
-      const nextChars = Array.from(nextSrc);
+      const nextChars = Array.from(srcLines[i + 1].text);
       const spIdx = nextChars.indexOf(' ');
       const firstWord = nextChars.slice(0, spIdx === -1 ? undefined : spIdx).join('');
       const boundaryKnown =
         unknown.length === 0 && Array.from(firstWord).every((c) => isKnownWidth(c));
       const nextW = textWidth(firstWord);
-      if (boundaryKnown && contentW + HALF_SPACE_W + nextW > LIMIT_FORCE + 0.3) {
+      if (boundaryKnown && contentW + HALF_SPACE_W + nextW > LIMIT_FORCE + MARGIN.BREAK_FIRE) {
         // そのまま発火する境界: 半角スペース 1 個で改行が成立（最安）
         lines.push({ source: src, padding: ' ' });
         output += src + ' ';
@@ -114,10 +117,10 @@ export function convert(input: string): ConvertResult {
         // 全角列は行内に留めるだけでよく、LIMIT_SAFE まで埋める必要がない点が
         // 通常パディング（約 24−幅 文字）との差。幅 10 以下の AA が救われる
         // （実測: 幅 10 は 7 行が限界だったのに対し幅 11 は 15 行という崖があった）
-        const need = LIMIT_FORCE + 0.3 - contentW - HALF_SPACE_W * 2 - nextW;
+        const need = LIMIT_FORCE + MARGIN.BREAK_FIRE - contentW - HALF_SPACE_W * 2 - nextW;
         const nFullTail = Math.max(0, Math.ceil(need));
         // 全角列を置いても行内に留まること（−0.5 は幅誤差マージン）
-        if (contentW + HALF_SPACE_W + nFullTail <= LIMIT_SAFE - 0.5) {
+        if (contentW + HALF_SPACE_W + nFullTail <= LIMIT_SAFE - MARGIN.LINE_KEEP) {
           const tail = ' ' + '　'.repeat(nFullTail) + ' ';
           lines.push({ source: src, padding: tail });
           output += src + tail;
@@ -137,12 +140,15 @@ export function convert(input: string): ConvertResult {
       // −1 は幅誤差マージン: 欧文フォールバック等でコンテンツ実幅が計算より
       // 最大 1.0 字分広くても、全角列の語判定（先読み）が「入らない」に落ちて
       // 全角列ごと次行へ転落する事故を防ぐ（2026-07-25 レトリバー ´´ 行ずれの対策）
-      const nFull = Math.max(0, Math.floor(LIMIT_SAFE - contentW - HALF_SPACE_W) - 1);
+      const nFull = Math.max(
+        0,
+        Math.floor(LIMIT_SAFE - contentW - HALF_SPACE_W) - MARGIN.FULL_COLUMN_KEEP,
+      );
       const used = contentW + HALF_SPACE_W + nFull;
       // 端数マージン: 幅が全て実測済みの行は +1 で足りる。幅未確認の文字を
       // 含む行だけ +3（約 0.7 字分）の保険を残す（文字数節約・2026-07-25）。
       // 超過行（警告済み）は詰め物なしで自力折り返しに任せる
-      const margin = unknown.length > 0 ? 3 : 1;
+      const margin = unknown.length > 0 ? MARGIN.TAIL_UNKNOWN : MARGIN.TAIL_KNOWN;
       const nHalf = Math.max(0, Math.ceil((LIMIT_FORCE - used) / HALF_SPACE_W) + margin);
       padding = ' ' + '　'.repeat(nFull) + ' '.repeat(nHalf);
     }

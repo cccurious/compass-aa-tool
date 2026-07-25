@@ -101,7 +101,8 @@ body {
 }
 .section-title {
     font-size: 1rem; color: var(--white); background: var(--dark-border);
-    padding: 8px 12px; border-radius: 6px; margin-bottom: 16px;
+    /* 右の余白は ? ボタンぶん。見出しが長い端末で文字と重ならないようにする */
+    padding: 8px 34px; border-radius: 6px; margin-bottom: 16px;
     text-align: center; border-bottom: 2px solid var(--primary-color);
     position: relative;
 }
@@ -150,22 +151,60 @@ body {
 /* ===============================
    ヘルプ（? アイコン）
 =============================== */
-.help-wrap { position: relative; display: inline-block; margin-left: 6px; vertical-align: middle; }
+/* ヘルプは見出しバーの右上に置く（ベースの .help-icon と同じ位置・
+   文中に挟むとベースラインがずれて下がって見えるため） */
+.help-wrap { position: static; }
 .help-icon-btn {
-    width: 18px; height: 18px; padding: 0;
+    position: absolute; top: 50%; right: 8px; transform: translateY(-50%);
+    width: 20px; height: 20px; padding: 0;
+    display: flex; align-items: center; justify-content: center;
     border-radius: 50%; border: none; cursor: pointer;
-    background: rgba(255, 255, 255, 0.25); color: inherit;
-    font-size: 0.7rem; font-weight: bold; line-height: 1;
+    background: rgba(255, 255, 255, 0.22); color: var(--white);
+    font-size: 0.72rem; font-weight: bold; line-height: 1; opacity: 0.85;
 }
 .help-icon-btn:active { background: rgba(255, 255, 255, 0.45); }
 .help-bubble {
-    position: absolute; top: calc(100% + 8px); left: 50%;
-    z-index: 400; width: max-content; max-width: min(280px, 80vw);
+    position: absolute; top: calc(100% + 8px); right: 4px; left: auto;
+    z-index: 400; width: max-content; max-width: min(280px, 78vw);
     padding: 10px 12px; border-radius: 8px;
     background: rgba(45, 55, 72, 0.97); color: var(--white);
     font-size: 0.78rem; font-weight: normal; line-height: 1.6; text-align: left;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
+/* 見出しバー以外（文字数カウンタなど）で使うときは行内に置く */
+.char-count .help-icon-btn {
+    position: static; transform: none; display: inline-flex;
+    margin-left: 6px; vertical-align: middle;
+    background: var(--border-color); color: var(--text-color);
+}
+.char-count { position: relative; }
+.char-count .help-bubble { right: 0; }
+
+/* 応援バナー（BM チェッカーから機構ごと流用・見た目を変えないこと） */
+/* Banner */
+.support-banner {
+    position: fixed; top: -100px; left: 10px; right: 10px; height: 44px;
+    background: var(--dark-border); border: 2px solid var(--primary-color); border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: flex; align-items: center; overflow: hidden;
+    transition: top 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 90;
+}
+.support-banner.show { top: calc(64px + env(safe-area-inset-top, 0px)); }
+.banner-content { position: relative; z-index: 2; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 0 16px; gap: 8px;}
+.banner-text-wrapper { flex: 1; position: relative; height: 20px; overflow: hidden; display: flex; align-items: center; }
+.code-text { font-size: 0.85rem; font-weight: bold; color: var(--white); position: absolute; width: 100%; white-space: nowrap; opacity: 0; transform: translateY(20px); }
+.code-text.msg-text { transform: translateY(0); opacity: 1; }
+.code-text.slide-in { animation: slideUpIn 0.5s forwards; }
+.code-text.slide-out { animation: slideUpOut 0.5s forwards; }
+
+@keyframes slideUpIn {
+    0% { transform: translateY(20px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+@keyframes slideUpOut {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-20px); opacity: 0; }
+}
+.copy-btn { padding: 6px 12px; background: var(--primary-color); color: var(--white); border: none; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: bold; white-space: nowrap;}
 
 /* ===============================
    コピー完了バナー

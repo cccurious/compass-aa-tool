@@ -25,6 +25,8 @@ export const AaConverterView = ({ input, setInput, onCopied }: AaConverterViewPr
                 bytes,
                 lines: result.preview.length,
                 over_limit: bytes > MAX_MESSAGE_BYTES,
+                had_removed_chars: result.removedLines.length > 0,
+                had_unknown_width: result.unknownWidthLines.length > 0,
             });
             onCopied();
         } catch {

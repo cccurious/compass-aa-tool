@@ -27,16 +27,12 @@ export const LIMIT_FORCE = 20.548;
 export const LINE_LIMIT = (LIMIT_SAFE + LIMIT_FORCE) / 2;
 
 /**
- * 1 メッセージの最大文字数。
- *
- * 入力欄の上限と**送信時の上限は別物**（2026-07-25 実測で判明）:
- * - 入力欄: 半角 a は 196 文字で停止・全角 あ は IME 確定時に 184 文字へ切り詰め
- * - 送信後: 184 文字のドット絵を送ると**先頭 180 文字だけが残り末尾 4 文字が消えた**
- *   （コピーバックで先頭 180 文字の完全一致を確認）
- *
- * ツールが守るべきは送信側の 180。入力欄の値（184/196）を信じると末尾が欠ける。
+ * 入力欄が受け付ける文字数の観測値（**送信判定には使わない**）。
+ * 半角 a は 196 文字で入力停止・全角 あ は IME 確定時に 184 文字へ切り詰められた。
+ * 送信後に残るかどうかは MAX_MESSAGE_BYTES（UTF-8 512 バイト）が決めるので、
+ * 上限判定には必ずそちらを使うこと。ここは経緯を残すためだけの定数。
  */
-export const MAX_MESSAGE_CHARS = 180;
+export const INPUT_FIELD_CHARS_OBSERVED = { halfWidth: 196, fullWidth: 184 } as const;
 
 /**
  * 1 メッセージの上限は **UTF-8 で 512 バイト**（2026-07-25 確定）。
@@ -48,6 +44,23 @@ export const MAX_MESSAGE_CHARS = 180;
  * 全角 = 3 バイト・半角 = 1 バイトなので、パディングの半角スペースは非常に安い。
  */
 export const MAX_MESSAGE_BYTES = 512;
+
+/**
+ * 生成側の安全マージン（実機モデル由来の数値なのでここに集約する）。
+ * - BREAK_FIRE: 先読みが「入らない」に確実に落ちるための上乗せ。
+ *   幅推定が多少ずれても 1 文字ブレークが不発にならない
+ * - LINE_KEEP: 行末の全角列が行内に留まることを保証する引き算。
+ *   ここを削ると全角列ごと次行へ転落する（レトリバー ´´ 行のずれ）
+ * - TAIL_KNOWN / TAIL_UNKNOWN: 半角スペース列の端数。幅が全て実測済みなら 1 個、
+ *   未確認文字を含む行は保険を厚くして 3 個
+ */
+export const MARGIN = {
+  BREAK_FIRE: 0.3,
+  LINE_KEEP: 0.5,
+  FULL_COLUMN_KEEP: 1,
+  TAIL_KNOWN: 1,
+  TAIL_UNKNOWN: 3,
+} as const;
 
 /** UTF-8 でのバイト長（実機の上限判定はこの値で行う） */
 export function utf8ByteLength(text: string): number {
@@ -169,22 +182,49 @@ const FALLBACK_VERIFIED_RANGES: [number, number][] = [
 const inRanges = (cp: number, ranges: [number, number][]) =>
   ranges.some(([lo, hi]) => cp >= lo && cp <= hi);
 
-/** 1 文字の幅（全角=1.0 単位）。実測できていない文字は推定値 */
-export function charWidth(ch: string): number {
-  const d = DEVICE_OVERRIDES[ch];
-  if (d !== undefined) return d;
-  // 実機確認済みの全角（※ § ± … などクラス分けでは 0.5 と誤推定される文字を含む）
-  if (VERIFIED_FULLWIDTH.has(ch)) return 1.0;
+export interface CharClass {
+  /** 全角 1 文字 = 1.0 とした送り幅 */
+  width: number;
+  /** 実測または確定クラス由来で、推定に頼っていないか */
+  verified: boolean;
+}
+
+/**
+ * 文字の分類はここ 1 箇所だけ。幅と確からしさを**同時に**返すことで、
+ * 「確認済みなのに幅は既定値」という食い違いが構造的に起きないようにしている。
+ * （以前は charWidth と isKnownWidth が別々に優先順位を書いており、
+ * 確認済み範囲を追記したときに幅の方が追従しない穴があった）
+ *
+ * 優先順位は上から: 実測の個別上書き → 実測の確認済み集合 → 確認済み範囲 →
+ * 半角クラス（BIZ 実測）→ 全角クラス（固定 1.0）→ フォールバック推定。
+ */
+export function classifyChar(ch: string): CharClass {
+  const override = DEVICE_OVERRIDES[ch];
+  if (override !== undefined) return { width: override, verified: true };
+  // ※ § ± … などクラス分けでは 0.5 と誤推定される文字を含む
+  if (VERIFIED_FULLWIDTH.has(ch)) return { width: 1.0, verified: true };
+
   const cp = ch.codePointAt(0)!;
+  if (inRanges(cp, FALLBACK_VERIFIED_RANGES)) return { width: 1.0, verified: true };
+
   if (inRanges(cp, HALF_RANGES)) {
     const w = BIZ_WIDTHS[ch];
-    if (w !== undefined) return w;
-    return BIZ_MISSING.has(ch) ? 0.5 : 1.0;
+    if (w !== undefined) return { width: w, verified: true };
+    // 収録漏れはフォールバックの半角固定幅に落ちる（_ で実証）
+    return BIZ_MISSING.has(ch) ? { width: 0.5, verified: false } : { width: 1.0, verified: true };
   }
-  if (ch === '　') return 1.0;
-  if (FULLWIDTH_RE.test(ch)) return 1.0;
-  if (inRanges(cp, FALLBACK_RANGES)) return 1.0;
-  return 0.5;
+
+  if (ch === '　') return { width: 1.0, verified: true };
+  if (FULLWIDTH_RE.test(ch)) return { width: 1.0, verified: true };
+
+  // 層 3 の未実測（ω Д 等）。1.0 と推定するが確認済みではないので警告対象
+  if (inRanges(cp, FALLBACK_RANGES)) return { width: 1.0, verified: false };
+  return { width: 0.5, verified: false };
+}
+
+/** 1 文字の幅（全角=1.0 単位）。実測できていない文字は推定値 */
+export function charWidth(ch: string): number {
+  return classifyChar(ch).width;
 }
 
 /**
@@ -192,33 +232,8 @@ export function charWidth(ch: string): number {
  * false の文字は推定幅になり、折り返し位置が実機とずれる可能性がある。
  */
 export function isKnownWidth(ch: string): boolean {
-  if (DEVICE_OVERRIDES[ch] !== undefined || VERIFIED_FULLWIDTH.has(ch)) return true;
-  const cp = ch.codePointAt(0)!;
-  if (inRanges(cp, FALLBACK_VERIFIED_RANGES)) return true;
-  if (inRanges(cp, HALF_RANGES)) return BIZ_WIDTHS[ch] !== undefined || !BIZ_MISSING.has(ch);
-  if (ch === '　') return true;
-  if (FULLWIDTH_RE.test(ch)) return true;
-  // 層 3 の未実測文字（ω Д 等）は 1.0 と推定するが、確認済みではない
-  return false;
+  return classifyChar(ch).verified;
 }
-
-/** スペーサー候補。verified は「実機で入力・表示・挙動を確認済み」 */
-export interface Spacer {
-  char: string;
-  width: number;
-  label: string;
-  verified: boolean;
-}
-
-/**
- * 実機検証済みの空白挙動（R2〜R3）:
- * - 半角スペース: 行中では幅 0.34・折り返し点では行末・行頭とも消える
- * - 全角スペース: トリムされず次行頭へキャリーされる（字下げになる）
- */
-export const SPACERS: Spacer[] = [
-  { char: '　', width: charWidth('　'), label: '全角スペース', verified: true },
-  { char: ' ', width: charWidth(' '), label: '半角スペース', verified: true },
-];
 
 /** 文字列の幅合計（サロゲートペア対応のため Array.from） */
 export function textWidth(text: string): number {

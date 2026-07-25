@@ -21,12 +21,18 @@ export const trackView = (view: string) => {
   });
 };
 
-/** コピー＝このツールの完了地点。どちらの作り方が使われているかを見る */
+/**
+ * コピー＝このツールの完了地点。どちらの作り方が使われているかを見る。
+ * 警告の有無もここに含める（描画のたびに送ると回数が膨らむため、
+ * 「その状態のまま完了したか」を 1 イベントで持たせる）。
+ */
 export const trackCopy = (params: {
   source: 'dot' | 'aa';
   bytes: number;
   lines: number;
   over_limit: boolean;
+  had_removed_chars: boolean;
+  had_unknown_width: boolean;
 }) => send('copy_aa', params);
 
 /** ドット打ちからテキスト編集へ送った回数 */
@@ -37,6 +43,6 @@ export const trackSendToConverter = (params: { lines: number }) =>
 export const trackPaletteAdd = (params: { added: number; skipped: number }) =>
   send('palette_add', params);
 
-/** 実機で消える文字・置換される並びが入力された回数（仕様案内の改善材料） */
-export const trackBlockedChars = (params: { kind: 'removed' | 'sequence'; chars: string }) =>
-  send('blocked_chars', params);
+/** 応援コードのコピー（BM チェッカーと同じ導線の効果測定） */
+export const trackSupportAction = (params: { action_type: 'copy_code' }) =>
+  send('support_action', params);

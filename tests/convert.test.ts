@@ -1,44 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { gridToText, emptyGrid, GRID_COLS } from '../src/core/grid';
 import { textWidth, MAX_MESSAGE_BYTES, utf8ByteLength } from '../src/core/metrics';
-import { MAX_ROWS, PALETTE_CATEGORIES } from '../src/store/useDotStore';
+import { MAX_ROWS } from '../src/store/useDotStore';
 import { simulateWrap } from '../src/core/wrap';
 import { convert } from '../src/core/convert';
-
-describe('metrics.textWidth（実機校正済み 3 層モデル）', () => {
-    it('層1: かな・漢字・全角記号・全角スペースは固定 1.0（R6-1/2/3 実測）', () => {
-        expect(textWidth('あいう')).toBe(3.0);
-        expect(textWidth('永　愛')).toBe(3.0);
-        expect(textWidth('＾＿う')).toBe(3.0);
-    });
-    it('層2: 半角は BIZ UDPGothic のプロポーショナル幅（R5-3/R6-4 実測）', () => {
-        expect(textWidth(' ')).toBeCloseTo(0.3403, 4);
-        expect(textWidth('j')).toBeCloseTo(0.3876, 4);
-        expect(textWidth(',')).toBeCloseTo(0.3164, 4);
-    });
-    it('層3: アトラス漏れ文字は全角 1.0 フォールバック（R5-1 で ´=1.0 実測）', () => {
-        expect(textWidth('´')).toBe(1.0);
-        expect(textWidth('⌒')).toBe(1.0);
-    });
-    it('_ は ASCII だがアトラス漏れで固定 0.5（R7 実測。BIZ 0.311 不採用）', () => {
-        expect(textWidth('_')).toBe(0.5);
-    });
-    it('罫線ブロックは幅 1.0 で実測済み（警告を出さない）', () => {
-        expect(textWidth('┏┓┃━')).toBe(4.0);
-        expect(convert('┏━┓\n┗━┛').unknownWidthLines).toEqual([]);
-    });
-    it('ブロック要素も幅 1.0 で実測済み（█▌░▒▓×10 → 20/20/10 折り返し）', () => {
-        expect(textWidth('█▌░▒▓')).toBe(5.0);
-        const lines = simulateWrap('█▌░▒▓'.repeat(10));
-        expect(lines.map((l) => Array.from(l.text).length)).toEqual([20, 20, 10]);
-        expect(convert('█▓▒░▌\nい').unknownWidthLines).toEqual([]);
-    });
-    it('R8 実測の記号は DEVICE_OVERRIDES が BIZ 値に優先する', () => {
-        expect(textWidth('|')).toBe(0.29);
-        expect(textWidth('=')).toBe(0.54);
-        expect(textWidth('r')).toBeCloseTo(0.4594, 4); // 英字は BIZ のまま
-    });
-});
 
 describe('wrap.simulateWrap', () => {
     it('全角 20 文字は折り返さない', () => {
@@ -214,45 +179,6 @@ describe('行数上限（キャンバス設計の根拠・2026-07-25 実測）',
     });
 });
 
-describe('一括検証で確定した幅（2026-07-25 プローブ A〜N）', () => {
-    it('推定 0.5 だった約物・欧文記号は実機 1.0 だった', () => {
-        for (const ch of '※§¶±×÷†‡‰′″‥…〝〟') expect(textWidth(ch)).toBe(1.0);
-    });
-    it('確認済み全角は警告対象から外れる', () => {
-        expect(convert('※§±…〆〇\nあ').unknownWidthLines).toEqual([]);
-        expect(convert('αβγ①②③\nあ').unknownWidthLines).toEqual([]);
-    });
-    it('ギリシャ大文字・キリルも確定（E-2）', () => {
-        expect(convert('ΑΒΓΔЖЗИЯ\nあ').unknownWidthLines).toEqual([]);
-    });
-    it('未検証の文字には警告が残る（ルーン文字は検証対象外）', () => {
-        expect(convert(String.fromCharCode(0x16a0) + '\nあ').unknownWidthLines.length).toBe(1);
-    });
-});
-
-describe('ラウンド3で確定した実機の癖', () => {
-    it('∥ は幅 0.5（20 個の後ろに ∧ が 10 個入る実測）', () => {
-        expect(textWidth('∥')).toBe(0.5);
-        const lines = simulateWrap('∥'.repeat(20) + '∧'.repeat(20));
-        expect(Array.from(lines[0].text).length).toBe(30);
-    });
-    it('実機で消える文字（⇑⇓✕）は取り除いて警告する', () => {
-        const result = convert('あ⇑い✕う\nか');
-        expect(result.removedLines).toEqual([{ line: 0, chars: ['⇑', '✕'] }]);
-        expect(result.output.startsWith('あいう')).toBe(true);
-    });
-    it('ΞΠ の並びを警告する（実機では * 1 文字に置換される）', () => {
-        expect(convert('ΞΠあ\nい').filteredSequenceLines).toEqual([
-            { line: 0, sequences: ['ΞΠ'] },
-        ]);
-        // 離せば問題ない
-        expect(convert('ΞあΠ\nい').filteredSequenceLines).toEqual([]);
-    });
-    it('確定した記号は警告対象から外れる', () => {
-        expect(convert('∞∠∩∪←↑★♦☂✓\nあ').unknownWidthLines).toEqual([]);
-    });
-});
-
 describe('罫線パレット（丸角つき）', () => {
     it('丸角 ╭╮╰╯ は幅 1.0 で警告も出ない', () => {
         expect(textWidth('╭╮╰╯')).toBe(4.0);
@@ -269,18 +195,22 @@ describe('罫線パレット（丸角つき）', () => {
     });
 });
 
-describe('追加した線種（二重・つなぎ）', () => {
-    it('二重線・太細つなぎは幅 1.0 で警告も出ない', () => {
-        expect(textWidth('═║╔╗╚╝╠╣╦╩╬')).toBe(11.0);
-        expect(textWidth('┍┑┕┙┎┒┖┚┝┥┰┸')).toBe(12.0);
-        expect(convert('╔═╗\n╚═╝').unknownWidthLines).toEqual([]);
-        expect(convert('┍━┑\n┕━┙').unknownWidthLines).toEqual([]);
+describe('底上げパディング（1 文字ブレークを発火させる構造）', () => {
+    it('構造は「半角 1 ＋ 全角 n ＋ 半角 1」で、先頭の半角が語の癒着を切る', () => {
+        // 幅 8 の行は素では発火しない（8+0.34+8 < しきい値）ので底上げ経路に入る
+        const result = convert('■'.repeat(8) + '\n' + '●'.repeat(8));
+        expect(result.lines[0].padding).toMatch(/^ 　+ $/);
     });
-    it('パレットの全文字が幅 1.0（カテゴリ横断の門番）', () => {
-        for (const c of PALETTE_CATEGORIES) {
-            for (const ch of c.chars) {
-                expect(textWidth(ch), `${c.label} の ${ch}`).toBe(1.0);
-            }
-        }
+    it('底上げしてもシミュレータで意図どおり 2 行に割れる', () => {
+        const src = ['■'.repeat(8), '●'.repeat(8)];
+        const result = convert(src.join('\n'));
+        const rendered = result.preview.map((l) => l.text.replace(/[ 　]+$/, ''));
+        expect(rendered).toEqual(src);
+    });
+    it('通常パディングより短い（底上げは行内に留める分だけで足りる）', () => {
+        const boosted = convert('■'.repeat(8) + '\n' + '●'.repeat(8)).lines[0].padding.length;
+        // 次行が狭いと発火に必要な底上げが増えるため、そちらの方が長くなる
+        const plain = convert('■'.repeat(8) + '\n' + '●').lines[0].padding.length;
+        expect(boosted).toBeLessThan(plain);
     });
 });

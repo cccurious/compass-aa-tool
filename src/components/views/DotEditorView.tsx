@@ -72,6 +72,8 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                 bytes,
                 lines: result.preview.length,
                 over_limit: bytes > MAX_MESSAGE_BYTES,
+                had_removed_chars: result.removedLines.length > 0,
+                had_unknown_width: result.unknownWidthLines.length > 0,
             });
             onCopied();
         } catch {
@@ -129,7 +131,7 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                         className="dot-add-input"
                         value={charInput}
                         onChange={(e) => setCharInput(e.target.value)}
-                        placeholder="文章を貼ると全角文字を抽出"
+                        placeholder="文章から文字を取り込む"
                     />
                     <button className="bulk-btn" onClick={handleAddChars}>パレットに追加</button>
                     {customPalette.length > 0 && (
@@ -143,9 +145,6 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                             追加分を消去（{customPalette.length}）
                         </button>
                     )}
-                </div>
-                <div className="dot-hint">
-                    同じ文字のマスをなぞると消去になります。半角文字はマス目に乗らないため除外されます。
                 </div>
             </section>
 

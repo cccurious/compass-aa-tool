@@ -4,12 +4,15 @@ import { AaConverterView } from './components/views/AaConverterView';
 import { DotEditorView } from './components/views/DotEditorView';
 import { GuideView } from './components/views/GuideView';
 import { CopyBanner } from './components/common/CopyBanner';
+import { SupportBanner } from './components/common/SupportBanner';
 import { trackView, trackSendToConverter } from './utils/analytics';
 import './style.css';
 
 export type ViewId = 'dot' | 'aa' | 'guide';
 
 const VIEW_IDS: ViewId[] = ['dot', 'aa', 'guide'];
+
+const SUPPORT_DONE_KEY = 'compass-aa-support-done';
 
 /** ?view= でビューを指定できる（共有・ブックマーク用） */
 const viewFromUrl = (): ViewId => {
@@ -24,6 +27,12 @@ function App() {
     // 変換ビューの入力（ドット打ちからの転送を受けるため App レベルで保持）
     const [aaInput, setAaInput] = useState('');
     const [copied, setCopied] = useState(false);
+    // 応援バナーはコピー案内が引っ込んでから出す（同じ位置に重ねない）。
+    // 一度コピーされたら二度と出さない（BM チェッカーと同じ規則・保存して持ち越す）
+    const [supportVisible, setSupportVisible] = useState(false);
+    const [supportDone, setSupportDone] = useState(
+        () => localStorage.getItem(SUPPORT_DONE_KEY) === '1',
+    );
 
     // 戻る/進むでビューが変わるようにする
     useEffect(() => {
@@ -52,7 +61,16 @@ function App() {
 
     const handleCopied = () => {
         setCopied(true);
-        window.setTimeout(() => setCopied(false), 5000);
+        window.setTimeout(() => {
+            setCopied(false);
+            if (!supportDone) setSupportVisible(true);
+        }, 5000);
+    };
+
+    const handleSupportClosed = () => {
+        setSupportVisible(false);
+        setSupportDone(true);
+        localStorage.setItem(SUPPORT_DONE_KEY, '1');
     };
 
     return (
@@ -73,6 +91,7 @@ function App() {
             </header>
 
             <CopyBanner show={copied} onClose={() => setCopied(false)} />
+            <SupportBanner visible={supportVisible} onClosePermanently={handleSupportClosed} />
 
             <Sidebar
                 currentView={currentView}
