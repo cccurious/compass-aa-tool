@@ -1,4 +1,4 @@
-import { LIMIT_SAFE, LIMIT_FORCE, textWidth, charWidth } from './metrics';
+import { LIMIT_SAFE, LIMIT_FORCE, textWidth, charWidth, isKnownWidth } from './metrics';
 import { simulateWrap, SimLine } from './wrap';
 
 /**
@@ -31,6 +31,12 @@ export interface ConvertResult {
   overflowLines: number[];
   /** 行頭が半角スペースの入力行番号（実機では消えて字下げにならない） */
   leadingSpaceLines: number[];
+  /**
+   * 幅が実測できていない文字を含む行番号と該当文字。
+   * 幅推測がずれると折り返し位置が狂い、Word Wrap 巻き戻しで
+   * 行の途中が次行へ落ちる（2026-07-25 ⌒ 未収載時に実機で発生）
+   */
+  unknownWidthLines: { line: number; chars: string[] }[];
 }
 
 const HALF_SPACE_W = charWidth(' ');
@@ -40,6 +46,7 @@ export function convert(input: string): ConvertResult {
   const lines: ConvertResultLine[] = [];
   const overflowLines: number[] = [];
   const leadingSpaceLines: number[] = [];
+  const unknownWidthLines: { line: number; chars: string[] }[] = [];
   let output = '';
 
   srcLines.forEach((raw, i) => {
@@ -48,6 +55,8 @@ export function convert(input: string): ConvertResult {
     // 全角スペース 1 個の「見た目空行」に置き換えて行を存続させる
     const src = /^ *$/.test(raw) ? '　' : raw;
     if (/^ /.test(src)) leadingSpaceLines.push(i);
+    const unknown = [...new Set(Array.from(src).filter((c) => !isKnownWidth(c)))];
+    if (unknown.length > 0) unknownWidthLines.push({ line: i, chars: unknown });
     const contentW = textWidth(src);
     if (contentW > LIMIT_SAFE) overflowLines.push(i);
 
@@ -58,8 +67,10 @@ export function convert(input: string): ConvertResult {
       // 折り返し点で実機側に消してもらう
       const nFull = Math.max(0, Math.floor(LIMIT_SAFE - contentW));
       const used = contentW + nFull;
-      // +1 は端数の安全マージン。超過行（警告済み）は 0 個で自力折り返しに任せる
-      const nHalf = Math.max(0, Math.ceil((LIMIT_FORCE - used) / HALF_SPACE_W) + 1);
+      // +3 は端数＋幅誤差の安全マージン（約 0.7 字分）。折り返しが半角スペース帯を
+      // 外れて全角スペースや次行頭に当たると Word Wrap 巻き戻し事故になるため、
+      // 帯を厚めに取る。超過行（警告済み）は 0 個で自力折り返しに任せる
+      const nHalf = Math.max(0, Math.ceil((LIMIT_FORCE - used) / HALF_SPACE_W) + 3);
       padding = '　'.repeat(nFull) + ' '.repeat(nHalf);
     }
 
@@ -73,5 +84,6 @@ export function convert(input: string): ConvertResult {
     preview: simulateWrap(output),
     overflowLines,
     leadingSpaceLines,
+    unknownWidthLines,
   };
 }

@@ -66,6 +66,15 @@ describe('convert', () => {
         const result = convert(' い\nあ');
         expect(result.leadingSpaceLines).toEqual([0]);
     });
+    it('幅未実測の文字を行番号つきで報告する（⌒事故の再発防止）', () => {
+        // U+E000 は私用領域＝どのフォントにも実測値が無い
+        const result = convert('ああ\nい');
+        expect(result.unknownWidthLines).toEqual([{ line: 0, chars: [''] }]);
+    });
+    it('⌒（U+2312）は幅 1.0 の実測済み文字（実機事故の原因だった文字）', () => {
+        expect(textWidth('⌒')).toBe(1.0);
+        expect(convert('j＾⌒j\nい').unknownWidthLines).toEqual([]);
+    });
     it('2 行 AA が意図どおり 2 行に折り返される 1 行を出力する', () => {
         const result = convert('あいう\nかきく');
         expect(result.output).not.toContain('\n');

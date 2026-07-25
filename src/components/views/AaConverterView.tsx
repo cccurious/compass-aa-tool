@@ -60,6 +60,15 @@ export const AaConverterView = () => {
                                 （全角約 {Math.floor(LINE_LIMIT)} 文字）を超えています。行を短くしてください。
                             </div>
                         )}
+                        {result.unknownWidthLines.length > 0 && (
+                            <div className="warn-note">
+                                ⚠️ 幅が未確認の文字が含まれています（
+                                {result.unknownWidthLines
+                                    .map((u) => `${u.line + 1}行目: ${u.chars.join(' ')}`)
+                                    .join(' ／ ')}
+                                ）。実機で形が崩れる可能性があります。
+                            </div>
+                        )}
                         {result.leadingSpaceLines.length > 0 && (
                             <div className="warn-note">
                                 ⚠️ {result.leadingSpaceLines.map((n) => n + 1).join(', ')} 行目の行頭に

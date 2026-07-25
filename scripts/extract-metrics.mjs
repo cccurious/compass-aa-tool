@@ -13,9 +13,15 @@ const WEIGHT = '400';
 const RANGES = [
   [0x0020, 0x007e], // ASCII
   [0x00a1, 0x00ff], // Latin-1 記号・欧文
+  [0x0370, 0x03ff], // ギリシャ（ω 等 AA 頻出）
+  [0x0400, 0x045f], // キリル（Д 等 AA 頻出）
   [0x2000, 0x206f], // 各種スペース・句読記号
   [0x2080, 0x2089], // 下付き数字（仕様書の ₁ など）
+  [0x2100, 0x23ff], // 技術記号（⌒ U+2312 等）
+  [0x2460, 0x25ff], // 囲み数字・罫線・図形
+  [0x2600, 0x27bf], // その他記号
   [0x3000, 0x303f], // CJK 記号・句読点（全角スペース含む）
+  [0xfe30, 0xfe4f], // CJK 互換形
   [0xff01, 0xff60], // 全角英数記号
   [0xff61, 0xff9f], // 半角カタカナ
 ];
@@ -72,8 +78,10 @@ for (const cp of [...targets].sort((a, b) => a - b)) {
 
 const out = {
   font: `Noto Sans JP ${WEIGHT} (fontsource ${fontFiles.length} subsets)`,
-  note: '幅は全角(あ)=1.0 単位。ここに無い文字は 1.0 とみなす。missing はグリフ欠落＝フォールバック要注意',
+  note: '幅は全角(あ)=1.0 単位。widths に無いが ranges 内かつ missing 外の文字は 1.0 実測。missing はグリフ欠落＝フォールバック要注意',
   baseEm: base,
+  ranges: RANGES,
+  extra: EXTRA,
   widths,
   missing,
 };
