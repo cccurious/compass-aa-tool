@@ -37,11 +37,14 @@ const SUGGEST =
  * （src/core/metrics.ts の DEVICE_VARIANT_CHARS と同じ内容）。
  * 除外しておかないと、その行が必ず崩れて他の文字の判定を隠してしまう。
  */
-const KNOWN_BAD = new Set(Array.from('▀░▒▓▘▝▖▗▚▞▛▜▙▟↕□═║╔╗╚╝╠╣╦╩╬'));
+const KNOWN_BAD = new Set(Array.from('▀▐░▒▓▘▝▖▗▚▞▛▜▙▟↕═║╔╗╚╝╠╣╦╩╬'));
+
+/** 既に「全角で正常」と確認できた文字も外す（検査を残りに集中させる） */
+const KNOWN_OK = new Set(Array.from('█▄▌◤◥◣◢─│'));
 
 // ■ は目印に使うので検査対象から外す（重複を除いて順序は保つ）
 const chars = [...new Set(Array.from(PRESET + SUGGEST))].filter(
-    (c) => c !== '■' && !KNOWN_BAD.has(c),
+    (c) => c !== '■' && !KNOWN_BAD.has(c) && !KNOWN_OK.has(c),
 );
 
 const lines = [];
