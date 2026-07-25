@@ -13,10 +13,10 @@ describe('実機校正済みの 3 層モデル', () => {
         expect(textWidth('永　愛')).toBe(3.0);
         expect(textWidth('＾＿う')).toBe(3.0);
     });
-    it('層2: 半角は BIZ UDPGothic のプロポーショナル幅（R5-3/R6-4 実測）', () => {
+    it('層2: 未実測の半角は BIZ UDPGothic のプロポーショナル幅（R5-3/R6-4 実測）', () => {
         expect(textWidth(' ')).toBeCloseTo(0.3403, 4);
         expect(textWidth('j')).toBeCloseTo(0.3876, 4);
-        expect(textWidth(',')).toBeCloseTo(0.3164, 4);
+        expect(textWidth('e')).toBeCloseTo(0.704, 3);
     });
     it('層3: アトラス漏れは全角 1.0 フォールバック（R5-1 で ´=1.0 実測）', () => {
         expect(textWidth('´')).toBe(1.0);
@@ -28,10 +28,24 @@ describe('実機校正済みの 3 層モデル', () => {
     it('∥ は幅 0.5（R3 実測。20 個の後ろに ∧ が 10 個入る）', () => {
         expect(textWidth('∥')).toBe(0.5);
     });
-    it('R8 ピッチ実測の記号は個別上書きが BIZ 値に優先する', () => {
-        expect(textWidth('|')).toBe(0.29);
-        expect(textWidth('=')).toBe(0.54);
-        expect(textWidth('r')).toBeCloseTo(0.4594, 4); // 英字は BIZ のまま
+    it('実測済みの記号は個別上書きが BIZ 値に優先し、値は 1/64 グリッドに乗る', () => {
+        expect(textWidth('|')).toBe(19 / 64);
+        expect(textWidth('=')).toBe(35 / 64);
+        expect(textWidth('r')).toBeCloseTo(0.4594, 4); // 未実測の英字は BIZ のまま
+    });
+    it('折り返し個数から精密実測した 4 文字（2026-07-26）', () => {
+        // その文字を N 個送って 1 行目に n 個入る → w ∈ (LIMIT_SAFE/(n+1), LIMIT_FORCE/n]
+        expect(textWidth('.')).toBe(18 / 64); // ×74 → 1 行 73 個
+        expect(textWidth(',')).toBe(18 / 64);
+        expect(textWidth('t')).toBe(32 / 64); // ×52 → 1 行 41 個
+        expect(textWidth('a')).toBe(39 / 64); // ×45 → 1 行 33 個
+    });
+    it('全ての実測値が 1/64 em グリッドに乗る（法則の門番）', () => {
+        for (const ch of Array.from("_.,ta'`|()=~^Oi l/\\-")) {
+            const w = textWidth(ch);
+            if (ch === ' ') continue; // 半角スペースは未実測（BIZ 値）
+            expect(Number.isInteger(Math.round(w * 64 * 1e6) / 1e6), `${ch} = ${w}`).toBe(true);
+        }
     });
     it('罫線・ブロック・幾何学図形は範囲ごと 1.0 実測済み', () => {
         expect(textWidth('┏┓┃━')).toBe(4.0);
