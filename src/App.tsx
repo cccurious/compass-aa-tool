@@ -27,7 +27,7 @@ function App() {
         <>
             <header className="header">
                 <div className="header-left">
-                    <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" className="logo" />
+                    <img src={`${import.meta.env.BASE_URL}logo.png`} alt="" className="logo" />
                     <h1 className="header-title">#AAメーカー</h1>
                 </div>
                 <button
