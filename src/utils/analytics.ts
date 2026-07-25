@@ -11,15 +11,12 @@ const send = (event: string, params: Record<string, unknown> = {}) => {
 };
 
 /** SPA のビュー切替を手動でページビューとして送る */
-export const trackView = (view: string) => {
-  const w = window as unknown as { gtag?: (...args: unknown[]) => void };
-  if (typeof w.gtag !== 'function') return;
-  w.gtag('event', 'page_view', {
+export const trackView = (view: string) =>
+  send('page_view', {
     page_title: view,
     page_location: `${location.origin}${location.pathname}?view=${view}`,
     page_path: `${location.pathname}?view=${view}`,
   });
-};
 
 /**
  * コピー＝このツールの完了地点。どちらの作り方が使われているかを見る。

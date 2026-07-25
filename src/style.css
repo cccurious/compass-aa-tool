@@ -78,7 +78,6 @@ body {
     font-weight: 500; font-size: 1rem; font-family: inherit; cursor: pointer; outline: none;
 }
 .side-menu li .menu-link.active { color: var(--primary-color); border-left: 4px solid var(--primary-color); padding-left: 12px; }
-.side-menu li .menu-link.disabled { color: #a0aec0; cursor: not-allowed; }
 
 .menu-link-main { display: block; font-size: 1.05rem; font-weight: bold; margin-bottom: 2px; }
 .menu-link-sub { display: block; font-size: 0.75rem; color: var(--subdued-text); font-weight: normal; }
@@ -145,9 +144,6 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* ===============================
-   AA変換ツール専用スタイル
-=============================== */
 /* ===============================
    ヘルプ（? アイコン）
 =============================== */
@@ -231,6 +227,10 @@ body {
     background: #fffbeb; border-left: 3px solid #f59e0b; border-radius: 4px;
     padding: 8px 12px; margin-top: 12px; font-size: 0.8rem; color: #92400e;
 }
+
+/* ===============================
+   AA 変換（入力欄・文字数カウンタ）
+=============================== */
 .aa-input {
     width: 100%;
     font-family: "Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif;
@@ -464,6 +464,7 @@ body {
 }
 .dot-grid-row {
     display: grid;
+    /* 20 = GRID_COLS（src/core/grid.ts）。列数を変えるときは両方まとめて */
     grid-template-columns: repeat(20, 1fr);
 }
 .dot-cell {
@@ -493,8 +494,9 @@ body {
     display: flex;
     justify-content: center;
 }
-/* 吹き出し本体。幅は実機 1 行ぶん（全角 20.5 字）ぴったりにして、
-   AA の左端＝吹き出しの左端という実機どおりの見え方にする。
+/* 吹き出し本体。幅は実機 1 行ぶん（全角 20.5 字 ≒ LINE_LIMIT、根拠は
+   src/core/metrics.ts）ぴったりにして、AA の左端＝吹き出しの左端という
+   実機どおりの見え方にする。下の font-size の 20.5 も同じ数。
    画面が狭いときは字を縮めて必ず 1 行が横スクロールなしで収まる */
 .chat-canvas {
     flex: none;
