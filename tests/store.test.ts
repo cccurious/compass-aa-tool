@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useDotStore, MAX_CUSTOM_CHARS, SUGGEST_CHARS } from '../src/store/useDotStore';
+import { useDotStore, MAX_CUSTOM_CHARS } from '../src/store/useDotStore';
+import { SUGGEST_CHARS } from '../src/core/palette';
 
 describe('パレット追加（新規優先の押し出し）', () => {
     beforeEach(() => {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { charWidth, isKnownWidth, classifyChar, textWidth } from '../src/core/metrics';
-import { PALETTE_CATEGORIES, SUGGEST_CHARS } from '../src/store/useDotStore';
+import { PALETTE_CATEGORIES, SUGGEST_CHARS } from '../src/core/palette';
 
 /**
  * 実機の実測値そのものの回帰テスト。再校正（ゲーム更新で幅が変わったとき）は

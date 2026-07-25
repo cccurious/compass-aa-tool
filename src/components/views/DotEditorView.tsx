@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-    useDotStore,
-    PALETTE_CATEGORIES,
-    PRESET_PALETTE,
-    SUGGEST_CHARS,
-    MAX_ROWS,
-} from '../../store/useDotStore';
+import { useDotStore, MAX_ROWS } from '../../store/useDotStore';
+import { PALETTE_CATEGORIES, PRESET_PALETTE, SUGGEST_CHARS } from '../../core/palette';
 
 import { gridToText, GRID_COLS } from '../../core/grid';
 import { convert } from '../../core/convert';

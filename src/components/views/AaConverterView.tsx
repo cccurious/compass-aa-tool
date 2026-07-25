@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { convert } from '../../core/convert';
 import { ConversionResult } from '../common/ConversionResult';
 import { HelpTooltip } from '../common/HelpTooltip';
-import { utf8ByteLength, MAX_MESSAGE_BYTES } from '../../core/metrics';
-import { trackCopy } from '../../utils/analytics';
+import { Toast } from '../common/Toast';
+import { useToast } from '../../hooks/useToast';
+import { useCopyResult } from '../../hooks/useCopyResult';
 
 interface AaConverterViewProps {
     input: string;
@@ -12,30 +13,10 @@ interface AaConverterViewProps {
 }
 
 export const AaConverterView = ({ input, setInput, onCopied }: AaConverterViewProps) => {
-    const [toast, setToast] = useState('');
+    const { toast, showToast } = useToast();
+    const copyResult = useCopyResult('aa', showToast, onCopied);
 
     const result = useMemo(() => (input ? convert(input) : null), [input]);
-
-    const handleCopy = async () => {
-        if (!result) return;
-        try {
-            await navigator.clipboard.writeText(result.output);
-            const bytes = utf8ByteLength(result.output);
-            trackCopy({
-                source: 'aa',
-                bytes,
-                lines: result.preview.length,
-                over_limit: bytes > MAX_MESSAGE_BYTES,
-                had_removed_chars: result.removedLines.length > 0,
-                had_unknown_width: result.unknownWidthLines.length > 0,
-            });
-            setToast('コピーしました');
-            onCopied();
-        } catch {
-            setToast('コピーできませんでした。もう一度お試しください');
-        }
-        setTimeout(() => setToast(''), 2000);
-    };
 
     return (
         <div>
@@ -58,7 +39,7 @@ export const AaConverterView = ({ input, setInput, onCopied }: AaConverterViewPr
             </section>
 
             {result ? (
-                <ConversionResult result={result} onCopy={handleCopy} />
+                <ConversionResult result={result} onCopy={() => copyResult(result)} />
             ) : (
                 <div className="empty-guide">
                     <p className="empty-guide-lead">
@@ -71,7 +52,7 @@ export const AaConverterView = ({ input, setInput, onCopied }: AaConverterViewPr
                 </div>
             )}
 
-            <div className={`toast ${toast ? 'show' : ''}`}>{toast}</div>
+            <Toast message={toast} />
         </div>
     );
 };
