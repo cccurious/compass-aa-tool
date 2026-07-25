@@ -1,4 +1,12 @@
-import { LIMIT_SAFE, LIMIT_FORCE, textWidth, charWidth, isKnownWidth } from './metrics';
+import {
+  LIMIT_SAFE,
+  LIMIT_FORCE,
+  textWidth,
+  charWidth,
+  isKnownWidth,
+  UNUSABLE_CHARS,
+  FILTERED_SEQUENCES,
+} from './metrics';
 import { simulateWrap, SimLine } from './wrap';
 
 /**
@@ -37,6 +45,10 @@ export interface ConvertResult {
    * 行の途中が次行へ落ちる（2026-07-25 ⌒ 未収載時に実機で発生）
    */
   unknownWidthLines: { line: number; chars: string[] }[];
+  /** 実機で消えるため取り除いた文字（行番号つき） */
+  removedLines: { line: number; chars: string[] }[];
+  /** 隣接すると別の文字に置換される並びを含む行 */
+  filteredSequenceLines: { line: number; sequences: string[] }[];
 }
 
 const HALF_SPACE_W = charWidth(' ');
@@ -47,10 +59,22 @@ export function convert(input: string): ConvertResult {
   const overflowLines: number[] = [];
   const leadingSpaceLines: number[] = [];
   const unknownWidthLines: { line: number; chars: string[] }[] = [];
+  const removedLines: { line: number; chars: string[] }[] = [];
+  const filteredSequenceLines: { line: number; sequences: string[] }[] = [];
   let output = '';
 
-  srcLines.forEach((raw, i) => {
+  srcLines.forEach((rawInput, i) => {
     const isLast = i === srcLines.length - 1;
+    // 実機で消える文字は先に取り除く（残すと送信時に欠けて形が崩れるため、
+    // プレビュー＝実機を保つには変換側で落とすのが正しい）
+    const removed = [...new Set(Array.from(rawInput).filter((c) => UNUSABLE_CHARS.has(c)))];
+    const raw =
+      removed.length > 0
+        ? Array.from(rawInput).filter((c) => !UNUSABLE_CHARS.has(c)).join('')
+        : rawInput;
+    if (removed.length > 0) removedLines.push({ line: i, chars: removed });
+    const seqs = FILTERED_SEQUENCES.filter((s) => raw.includes(s));
+    if (seqs.length > 0) filteredSequenceLines.push({ line: i, sequences: seqs });
     // 注: 半角 . / : はコピー時にのみ全角化される（表示は半角のまま）ため、
     // 置換の先取りはしない（一度実装して誤診と判明・撤回。normalize.ts 参照）
     // 半角スペースのみ（または空）の行は折り返し点で丸ごと消えるため、
@@ -134,5 +158,7 @@ export function convert(input: string): ConvertResult {
     overflowLines,
     leadingSpaceLines,
     unknownWidthLines,
+    removedLines,
+    filteredSequenceLines,
   };
 }

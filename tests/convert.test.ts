@@ -222,7 +222,30 @@ describe('一括検証で確定した幅（2026-07-25 プローブ A〜N）', ()
         expect(convert('※§±…〆〇\nあ').unknownWidthLines).toEqual([]);
         expect(convert('αβγ①②③\nあ').unknownWidthLines).toEqual([]);
     });
-    it('未検証グループ（矢印 ← など）は警告が残る', () => {
-        expect(convert('←↑→↓\nあ').unknownWidthLines.length).toBe(1);
+    it('未検証の文字には警告が残る（キリル大文字などは未実測）', () => {
+        expect(convert('ДЖЗИ\nあ').unknownWidthLines.length).toBe(1);
+    });
+});
+
+describe('ラウンド3で確定した実機の癖', () => {
+    it('∥ は幅 0.5（20 個の後ろに ∧ が 10 個入る実測）', () => {
+        expect(textWidth('∥')).toBe(0.5);
+        const lines = simulateWrap('∥'.repeat(20) + '∧'.repeat(20));
+        expect(Array.from(lines[0].text).length).toBe(30);
+    });
+    it('実機で消える文字（⇑⇓✕）は取り除いて警告する', () => {
+        const result = convert('あ⇑い✕う\nか');
+        expect(result.removedLines).toEqual([{ line: 0, chars: ['⇑', '✕'] }]);
+        expect(result.output.startsWith('あいう')).toBe(true);
+    });
+    it('ΞΠ の並びを警告する（実機では * 1 文字に置換される）', () => {
+        expect(convert('ΞΠあ\nい').filteredSequenceLines).toEqual([
+            { line: 0, sequences: ['ΞΠ'] },
+        ]);
+        // 離せば問題ない
+        expect(convert('ΞあΠ\nい').filteredSequenceLines).toEqual([]);
+    });
+    it('確定した記号は警告対象から外れる', () => {
+        expect(convert('∞∠∩∪←↑★♦☂✓\nあ').unknownWidthLines).toEqual([]);
     });
 });

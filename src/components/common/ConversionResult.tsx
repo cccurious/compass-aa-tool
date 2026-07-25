@@ -46,6 +46,24 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
                         （全角約 {Math.floor(LINE_LIMIT)} 文字）を超えています。行を短くしてください。
                     </div>
                 )}
+                {result.removedLines.length > 0 && (
+                    <div className="warn-note">
+                        ⚠️ 実機で消えてしまう文字を取り除きました（
+                        {result.removedLines
+                            .map((u) => `${u.line + 1}行目: ${u.chars.join(' ')}`)
+                            .join(' ／ ')}
+                        ）。別の文字に置き換えてください。
+                    </div>
+                )}
+                {result.filteredSequenceLines.length > 0 && (
+                    <div className="warn-note">
+                        ⚠️ 実機で別の文字に置き換わる並びがあります（
+                        {result.filteredSequenceLines
+                            .map((u) => `${u.line + 1}行目: ${u.sequences.join(' ')}`)
+                            .join(' ／ ')}
+                        ）。間に別の文字を挟むか、並び順を変えてください。
+                    </div>
+                )}
                 {result.unknownWidthLines.length > 0 && (
                     <div className="warn-note">
                         ⚠️ 幅が未確認の文字が含まれています（
