@@ -50,8 +50,8 @@ describe('convert', () => {
             '.　 　 ´´ 　 ´´´',
         ];
         const result = convert(src.join('\n'));
-        const rendered = result.preview.map((l) => l.text.replace(/[ 　]+$/, ''));
-        expect(rendered).toEqual(src.map((s) => s.replace(/[ 　]+$/, '')));
+        const rendered = result.preview.map((l) => l.text.replace(/[ \u3000]+$/, ''));
+        expect(rendered).toEqual(src.map((s) => s.replace(/[ \u3000]+$/, '')));
     });
     it('半角 . / : はそのまま送る（全角化はコピー時のみで表示は半角のまま）', () => {
         const result = convert('.　/:あ\nい');
@@ -59,14 +59,14 @@ describe('convert', () => {
     });
     it('パディングは先頭に半角スペース 1 個を挟む（語の癒着を切る）', () => {
         const result = convert('あいう\nかきく');
-        expect(result.lines[0].padding).toMatch(/^ 　+ +$/);
+        expect(result.lines[0].padding).toMatch(/^ \u3000+ +$/);
     });
     it('ラウンドトリップ: 出力をシミュレータへ通すと入力行が復元される', () => {
         const src = ['（＾ω＾）', '　＜わっしょい＞', '∪　∪'];
         const result = convert(src.join('\n'));
         // パディング（行末の全角/半角スペース）は表示に影響しないため除いて比較
-        const rendered = result.preview.map((l) => l.text.replace(/[ 　]+$/, ''));
-        expect(rendered).toEqual(src.map((s) => s.replace(/[ 　]+$/, '')));
+        const rendered = result.preview.map((l) => l.text.replace(/[ \u3000]+$/, ''));
+        expect(rendered).toEqual(src.map((s) => s.replace(/[ \u3000]+$/, '')));
     });
     it('空行は全角スペース行として存続する', () => {
         const result = convert('あ\n\nい');
@@ -77,7 +77,7 @@ describe('convert', () => {
         const result = convert('あいう\nかきく');
         // 幅 3 の行: 半角 1 + 全角 16 個 + 半角数個 ≈ 25 文字弱（半角のみの旧方式は 78 文字超）
         expect(result.lines[0].padding.length).toBeLessThan(28);
-        expect(result.lines[0].padding).toMatch(/^ 　+ +$/);
+        expect(result.lines[0].padding).toMatch(/^ \u3000+ +$/);
     });
     it('行頭の半角スペースを警告する（実機では消えるため）', () => {
         const result = convert(' い\nあ');
@@ -116,7 +116,7 @@ describe('convert: 1 文字ブレーク最適化（語先読み改行の逆用�
         const result = convert(src.join('\n'));
         expect(result.lines[0].padding).toBe(' ');
         // ラウンドトリップ: シミュレータでも 2 行に割れる
-        const rendered = result.preview.map((l) => l.text.replace(/[ 　]+$/, ''));
+        const rendered = result.preview.map((l) => l.text.replace(/[ \u3000]+$/, ''));
         expect(rendered).toEqual(src);
         // 出力は 15+1+15 = 31 文字（通常パディングなら 50 文字超）
         expect(Array.from(result.output)).toHaveLength(31);
@@ -190,7 +190,7 @@ describe('罫線パレット（丸角つき）', () => {
         grid[1][0] = '╰'; grid[1][1] = '─'; grid[1][2] = '╯';
         const text = gridToText(grid);
         expect(text).toBe('╭─╮' + '\n' + '╰─╯');
-        const rendered = convert(text).preview.map((l) => l.text.replace(/[ 　]+$/, ''));
+        const rendered = convert(text).preview.map((l) => l.text.replace(/[ \u3000]+$/, ''));
         expect(rendered).toEqual(['╭─╮', '╰─╯']);
     });
 });
@@ -199,12 +199,12 @@ describe('底上げパディング（1 文字ブレークを発火させる構�
     it('構造は「半角 1 ＋ 全角 n ＋ 半角 1」で、先頭の半角が語の癒着を切る', () => {
         // 幅 8 の行は素では発火しない（8+0.34+8 < しきい値）ので底上げ経路に入る
         const result = convert('■'.repeat(8) + '\n' + '●'.repeat(8));
-        expect(result.lines[0].padding).toMatch(/^ 　+ $/);
+        expect(result.lines[0].padding).toMatch(/^ \u3000+ $/);
     });
     it('底上げしてもシミュレータで意図どおり 2 行に割れる', () => {
         const src = ['■'.repeat(8), '●'.repeat(8)];
         const result = convert(src.join('\n'));
-        const rendered = result.preview.map((l) => l.text.replace(/[ 　]+$/, ''));
+        const rendered = result.preview.map((l) => l.text.replace(/[ \u3000]+$/, ''));
         expect(rendered).toEqual(src);
     });
     it('通常パディングより短い（底上げは行内に留める分だけで足りる）', () => {
