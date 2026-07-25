@@ -1,21 +1,25 @@
 import { useState } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { AaConverterView } from './components/views/AaConverterView';
+import { DotEditorView } from './components/views/DotEditorView';
 import './style.css';
 
-export type ViewId = 'aa';
-
-const getViewFromUrl = (): ViewId => {
-    return 'aa';
-};
+export type ViewId = 'aa' | 'dot';
 
 function App() {
-    const [currentView, setCurrentView] = useState<ViewId>(getViewFromUrl());
+    const [currentView, setCurrentView] = useState<ViewId>('aa');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    // 変換ビューの入力（ドット打ちからの転送を受けるため App レベルで保持）
+    const [aaInput, setAaInput] = useState('');
 
     const handleViewChange = (viewId: ViewId) => {
         setCurrentView(viewId);
         setIsMenuOpen(false);
+    };
+
+    const handleSendToConverter = (text: string) => {
+        setAaInput(text);
+        setCurrentView('aa');
     };
 
     return (
@@ -47,7 +51,10 @@ function App() {
 
             <main className="main-content">
                 <div className={`view-section ${currentView === 'aa' ? 'active' : ''}`}>
-                    <AaConverterView />
+                    <AaConverterView input={aaInput} setInput={setAaInput} />
+                </div>
+                <div className={`view-section ${currentView === 'dot' ? 'active' : ''}`}>
+                    <DotEditorView onSendToConverter={handleSendToConverter} />
                 </div>
             </main>
         </>

@@ -183,6 +183,79 @@ body {
     color: #dc2626;
 }
 
+/* ===============================
+   ドット打ちエディタ
+=============================== */
+.dot-palette {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.dot-palette-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--white);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.dot-palette-btn.active {
+    background: var(--dark-border);
+    color: var(--primary-color);
+    border-color: var(--dark-border);
+}
+.dot-add-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    align-items: center;
+}
+.dot-add-input {
+    width: 130px;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 1rem;
+    background: var(--bg-color);
+    outline: none;
+}
+.dot-add-input:focus { border-color: var(--primary-color); }
+
+.dot-grid {
+    display: flex;
+    flex-direction: column;
+    border: 2px solid var(--dark-border);
+    border-radius: 8px;
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+    background: #fdfdfd;
+}
+.dot-grid-row {
+    display: grid;
+    grid-template-columns: repeat(20, 1fr);
+}
+.dot-cell {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: min(3.2vw, 16px);
+    border-right: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+    cursor: pointer;
+    overflow: hidden;
+}
+.dot-cell:nth-child(20n) { border-right: none; }
+.dot-grid-row:last-child .dot-cell { border-bottom: none; }
+.dot-grid-row:nth-child(5n) .dot-cell { border-bottom-color: #cbd5e0; }
+.dot-cell:nth-child(5n) { border-right-color: #cbd5e0; }
+
 /* チャット吹き出し風プレビュー */
 .chat-bubble {
     background: #e8f0e6;

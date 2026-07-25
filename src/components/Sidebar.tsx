@@ -19,9 +19,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, isOpen, onViewCha
                     </button>
                 </li>
                 <li>
-                    <button className="menu-link disabled" disabled>
+                    <button className={`menu-link ${currentView === 'dot' ? 'active' : ''}`} onClick={() => onViewChange('dot')}>
                         <span className="menu-link-main">ドット打ちエディタ</span>
-                        <span className="menu-link-sub">準備中</span>
+                        <span className="menu-link-sub">マス目に文字を置いてAAを作る</span>
                     </button>
                 </li>
             </ul>

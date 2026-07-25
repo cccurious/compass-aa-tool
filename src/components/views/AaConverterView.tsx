@@ -20,8 +20,12 @@ const ChatLine = ({ text }: { text: string }) => (
 
 const SAMPLE = '（＾ω＾）\n＜わっしょい＞\n∪　∪';
 
-export const AaConverterView = () => {
-    const [input, setInput] = useState('');
+interface AaConverterViewProps {
+    input: string;
+    setInput: (text: string) => void;
+}
+
+export const AaConverterView = ({ input, setInput }: AaConverterViewProps) => {
     const [toast, setToast] = useState('');
 
     const result = useMemo(() => (input ? convert(input) : null), [input]);

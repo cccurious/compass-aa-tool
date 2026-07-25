@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { gridToText, emptyGrid, GRID_COLS } from '../src/core/grid';
 import { textWidth } from '../src/core/metrics';
 import { simulateWrap } from '../src/core/wrap';
 import { convert } from '../src/core/convert';
@@ -130,5 +131,28 @@ describe('convert', () => {
         const result = convert('（＾ω＾）\n＜わっしょい＞\n∪　∪');
         expect(result.overflowLines).toEqual([]);
         expect(result.preview).toHaveLength(3);
+    });
+});
+
+describe('grid.gridToText（ドット打ち→AAテキスト・文字数節約規則）', () => {
+    it('行末の空セルは出力せず、左端・中間の空セルは全角スペースになる', () => {
+        const grid = emptyGrid(2);
+        grid[0][1] = '■';
+        grid[0][3] = '●';
+        grid[1][0] = '□';
+        expect(gridToText(grid)).toBe('　■　●\n□');
+    });
+    it('全空行は空文字列・末尾の全空行は削られる', () => {
+        const grid = emptyGrid(4);
+        grid[0][0] = '■';
+        grid[2][0] = '●';
+        expect(gridToText(grid)).toBe('■\n\n●');
+    });
+    it('20 列すべて埋めた行は LIMIT_SAFE 以下に収まる', () => {
+        const grid = emptyGrid(1);
+        for (let c = 0; c < GRID_COLS; c++) grid[0][c] = '■';
+        const text = gridToText(grid);
+        expect(Array.from(text)).toHaveLength(20);
+        expect(convert(text).overflowLines).toEqual([]);
     });
 });
