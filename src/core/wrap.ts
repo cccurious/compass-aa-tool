@@ -1,12 +1,13 @@
 import { charWidth, LINE_LIMIT } from './metrics';
 
 /**
- * 自動折り返しシミュレータ。
- * 1 行テキストを実機と同じ規則（幅がしきい値を超える文字の直前で折る）で
- * 行に分割する。校正フェーズでは実機スクショとの一致検証の測定器を兼ねる。
+ * 自動折り返しシミュレータ（実機検証済みの規則・2026-07-25 ラウンド 2）。
+ * - 幅がしきい値を超える文字の直前で折る
+ * - 折り返し点の半角スペース連続は消える（行末に残らず、次行頭にも出ない）
+ * - 全角スペースは消えず、次行頭へキャリーされて字下げになる
  *
- * 注意: Word Wrap（半角単語巻き戻し）は現時点で未実装。
- * 半角英数の連続を含む入力では実機とズレる（docs/spec.md §5）。
+ * 注意: Word Wrap（半角英数単語の巻き戻し）は未実装。
+ * 半角英数の連続を含む入力では実機とズレる可能性（docs/spec.md §5）。
  */
 export interface SimLine {
   text: string;
@@ -17,12 +18,22 @@ export function simulateWrap(oneLine: string, limit: number = LINE_LIMIT): SimLi
   const lines: SimLine[] = [];
   let cur = '';
   let curW = 0;
+  let eating = false; // 折り返し直後: 半角スペースを食べている状態
+
   for (const ch of Array.from(oneLine)) {
+    if (eating) {
+      if (ch === ' ') continue; // 折り返し点の半角スペースは消える
+      eating = false;
+    }
     const w = charWidth(ch);
     if (curW + w > limit && cur !== '') {
       lines.push({ text: cur, width: curW });
       cur = '';
       curW = 0;
+      if (ch === ' ') {
+        eating = true;
+        continue;
+      }
     }
     cur += ch;
     curW += w;

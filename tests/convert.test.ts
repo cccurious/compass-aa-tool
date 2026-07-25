@@ -30,7 +30,36 @@ describe('wrap.simulateWrap', () => {
     });
 });
 
+describe('wrap.simulateWrap（実機規則: 折り返し点の半角スペースは消える）', () => {
+    it('折り返し点の半角スペース連続は行末にも次行頭にも残らない', () => {
+        const lines = simulateWrap('あ'.repeat(20) + '          ' + 'い');
+        expect(lines).toHaveLength(2);
+        expect(lines[1].text).toBe('い'); // 字下げなし（ラウンド2 R2-3 実測）
+    });
+    it('全角スペースは消えず次行頭へキャリーされる', () => {
+        const lines = simulateWrap('あ'.repeat(20) + '　い');
+        expect(lines).toHaveLength(2);
+        expect(lines[1].text).toBe('　い'); // 1 字分の字下げ（R2-1 実測）
+    });
+});
+
 describe('convert', () => {
+    it('ラウンドトリップ: 出力をシミュレータへ通すと入力行が復元される', () => {
+        const src = ['（＾ω＾）', '　＜わっしょい＞', '∪　∪'];
+        const result = convert(src.join('\n'));
+        const rendered = result.preview.map((l) => l.text.replace(/ +$/, ''));
+        expect(rendered).toEqual(src);
+    });
+    it('空行は全角スペース 1 個の行として存続する', () => {
+        const result = convert('あ\n\nい');
+        expect(result.preview.map((l) => l.text.replace(/ +$/, ''))).toEqual([
+            'あ', '　', 'い',
+        ]);
+    });
+    it('行頭の半角スペースを警告する（実機では消えるため）', () => {
+        const result = convert(' い\nあ');
+        expect(result.leadingSpaceLines).toEqual([0]);
+    });
     it('2 行 AA が意図どおり 2 行に折り返される 1 行を出力する', () => {
         const result = convert('あいう\nかきく');
         expect(result.output).not.toContain('\n');
@@ -38,8 +67,8 @@ describe('convert', () => {
         expect(result.preview[0].text.startsWith('あいう')).toBe(true);
         expect(result.preview[1].text.startsWith('かきく')).toBe(true);
     });
-    it('上限超過行を検出する', () => {
-        const result = convert('あ'.repeat(25) + '\nかきく');
+    it('上限超過行を検出する（LIMIT_SAFE=20.278 超え）', () => {
+        const result = convert('あ'.repeat(21) + '\nかきく');
         expect(result.overflowLines).toEqual([0]);
     });
     it('プレビュー行数は入力行数と一致する（超過行なしの場合）', () => {

@@ -1,26 +1,24 @@
-import { LINE_LIMIT, SPACERS, textWidth, charWidth } from './metrics';
+import { LIMIT_SAFE, LIMIT_FORCE, textWidth, charWidth } from './metrics';
 import { simulateWrap, SimLine } from './wrap';
 
 /**
- * 複数行 AA → スペーサー付き 1 行テキスト変換（v0 貪欲法）。
+ * 複数行 AA → スペーサー付き 1 行テキスト変換（v1・実機検証済みモデル）。
  *
- * 各行の末尾へスペーサーを詰め、次行の先頭文字が幅しきい値を超えて
- * 自動改行されるところまで埋める。詰め込んだスペーサーのうち
- * しきい値を超えた分は次行の行頭インデント（キャリーオーバー）になる。
+ * 実機規則（2026-07-25 ラウンド 2 で確定）:
+ * - 折り返し点の半角スペースは行末・次行頭とも消える（痕跡ゼロ）
+ * - 全角スペースはキャリーされる＝行頭の字下げは各行の先頭に書けばよい
  *
- * v0 の制約（校正フェーズ後に精密化）:
- * - スペーサーは全角/半角スペースのみ（狭幅記号は入力可否未検証のため不使用）
- * - キャリーオーバーの目標値は「最小」固定（行頭インデント制御は未対応)
+ * よって各行末に半角スペースを「確実に折れる幅（LIMIT_FORCE）」まで詰めるだけで
+ * よく、キャリーオーバー計算は不要。余ったスペースは実機側が消してくれる。
+ *
+ * 保証条件: 各行のコンテンツ幅が LIMIT_SAFE 以下であること
+ * （超えると未確定帯 [SAFE, FORCE) で実機の折り返しが予測不能）。
  */
 export interface ConvertResultLine {
   /** 元の入力行 */
   source: string;
   /** 付与したスペーサー文字列 */
   padding: string;
-  /** この行が次行へ持ち越す幅（行頭インデント量） */
-  carryOut: number;
-  /** スペーサーで埋めきれず折り返し保証ができなかった場合 true */
-  underflow: boolean;
 }
 
 export interface ConvertResult {
@@ -29,55 +27,48 @@ export interface ConvertResult {
   lines: ConvertResultLine[];
   /** 出力を折り返しシミュレータへ通した結果（プレビュー用） */
   preview: SimLine[];
-  /** 入力行のうち単体でしきい値を超えている行番号（0 始まり） */
+  /** 幅が LIMIT_SAFE を超え、表示保証ができない入力行番号（0 始まり） */
   overflowLines: number[];
+  /** 行頭が半角スペースの入力行番号（実機では消えて字下げにならない） */
+  leadingSpaceLines: number[];
 }
 
-export function convert(input: string, limit: number = LINE_LIMIT): ConvertResult {
+const HALF_SPACE_W = charWidth(' ');
+
+export function convert(input: string): ConvertResult {
   const srcLines = input.replace(/\r\n/g, '\n').split('\n');
   const lines: ConvertResultLine[] = [];
   const overflowLines: number[] = [];
-
-  let carry = 0; // 前行から持ち越された行頭幅
+  const leadingSpaceLines: number[] = [];
   let output = '';
 
-  srcLines.forEach((src, i) => {
+  srcLines.forEach((raw, i) => {
     const isLast = i === srcLines.length - 1;
+    // 半角スペースのみ（または空）の行は折り返し点で丸ごと消えるため、
+    // 全角スペース 1 個の「見た目空行」に置き換えて行を存続させる
+    const src = /^ *$/.test(raw) ? '　' : raw;
+    if (/^ /.test(src)) leadingSpaceLines.push(i);
     const contentW = textWidth(src);
-    if (contentW > limit) overflowLines.push(i);
+    if (contentW > LIMIT_SAFE) overflowLines.push(i);
 
     let padding = '';
-    let carryOut = 0;
-    let underflow = false;
-
     if (!isLast) {
-      // 次行の先頭文字が入らなくなるまでスペーサーを詰める
-      const nextFirst = Array.from(srcLines[i + 1] ?? '')[0];
-      const nextW = nextFirst !== undefined ? charWidth(nextFirst) : 1.0;
-      let used = carry + contentW;
-      // 全角スペース優先で埋め、半角スペースで「次行先頭が入らない」まで詰める
-      const [full, half] = SPACERS;
-      while (used + full.width + nextW <= limit) {
-        padding += full.char;
-        used += full.width;
-      }
-      while (used + nextW <= limit) {
-        padding += half.char;
-        used += half.width;
-      }
-      if (used + nextW <= limit) underflow = true;
-      carryOut = used > limit ? used - limit : 0;
+      // 確実に折れる幅（LIMIT_FORCE）に到達するまで半角スペースを詰める。
+      // 折り返し点のスペースは実機側で消えるため、詰めすぎの害はない
+      const need = Math.max(0, LIMIT_FORCE - contentW);
+      const count = Math.ceil(need / HALF_SPACE_W) + 1; // +1 は端数の安全マージン
+      padding = ' '.repeat(count);
     }
 
-    lines.push({ source: src, padding, carryOut, underflow });
+    lines.push({ source: src, padding });
     output += src + padding;
-    carry = carryOut;
   });
 
   return {
     output,
     lines,
-    preview: simulateWrap(output, limit),
+    preview: simulateWrap(output),
     overflowLines,
+    leadingSpaceLines,
   };
 }

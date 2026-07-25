@@ -57,7 +57,14 @@ export const AaConverterView = () => {
                         {result.overflowLines.length > 0 && (
                             <div className="warn-note">
                                 ⚠️ {result.overflowLines.map((n) => n + 1).join(', ')} 行目が 1 行の上限
-                                （全角約 {LINE_LIMIT} 文字）を超えています。行を短くしてください。
+                                （全角約 {Math.floor(LINE_LIMIT)} 文字）を超えています。行を短くしてください。
+                            </div>
+                        )}
+                        {result.leadingSpaceLines.length > 0 && (
+                            <div className="warn-note">
+                                ⚠️ {result.leadingSpaceLines.map((n) => n + 1).join(', ')} 行目の行頭に
+                                半角スペースがあります。ゲーム内では消えてしまうため、
+                                字下げには全角スペースを使ってください。
                             </div>
                         )}
                     </section>

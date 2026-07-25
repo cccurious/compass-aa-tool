@@ -15,10 +15,15 @@ export const CALIBRATED = false;
 
 /**
  * 1 行の折り返ししきい値（全角 1 文字 = 1.0 単位）。
- * 実測で確定しているのは「全角 20 は折れず 21 で折れる」＝ 区間 [20, 21) のみ。
- * 20.5 は仕様書由来の仮値。フェーズ A プローブ 3・4 で区間を狭める。
+ * ラウンド 1・2 の実機プローブ（2026-07-25・iPhone）で L ∈ [20.278, 20.548) を確定。
+ * - LIMIT_SAFE 以下なら「折れない」ことを保証できる（コンテンツ行の上限）
+ * - LIMIT_FORCE 以上なら「折れる」ことを保証できる（パディングの到達目標）
+ * - 中間は未確定帯: この帯に行幅を置いてはいけない
  */
-export const LINE_LIMIT = 20.5;
+export const LIMIT_SAFE = 20.278;
+export const LIMIT_FORCE = 20.548;
+/** プレビュー用の代表値（未確定帯の中央。生成側は SAFE/FORCE のみを使う） */
+export const LINE_LIMIT = (LIMIT_SAFE + LIMIT_FORCE) / 2;
 
 /** Noto Sans JP で幅 1.0 でない文字の例外マップ（全角=1.0 単位） */
 const EXCEPTIONS: Record<string, number> = noto.widths;
@@ -34,9 +39,16 @@ export interface Spacer {
   verified: boolean;
 }
 
+/**
+ * 実機検証済みの空白挙動（ラウンド 2・2026-07-25）:
+ * - 半角スペース: 行中では幅を持つが、折り返し点では行末・行頭とも消える（トリム）。
+ *   → 痕跡を残さないパディング部品として最適
+ * - 全角スペース: トリムされず次行頭へキャリーされる（見た目の字下げになる）
+ *   → 行頭インデントは各行の先頭に全角スペースを書けばそのまま出る
+ */
 export const SPACERS: Spacer[] = [
-  { char: '　', width: charWidth('　'), label: '全角スペース', verified: false },
-  { char: ' ', width: charWidth(' '), label: '半角スペース', verified: false },
+  { char: '　', width: charWidth('　'), label: '全角スペース', verified: true },
+  { char: ' ', width: charWidth(' '), label: '半角スペース', verified: true },
 ];
 
 /** 全角判定（East Asian Width の主要域） */
