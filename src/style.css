@@ -296,23 +296,27 @@ body {
 .dot-cell:nth-child(5n) { border-right-color: #cbd5e0; }
 
 /* チャット吹き出し風プレビュー */
+/* 吹き出しを中央に置くための器（見た目は持たない） */
 .chat-bubble {
+    container-type: inline-size;
+    display: flex;
+    justify-content: center;
+}
+/* 吹き出し本体。幅は実機 1 行ぶん（全角 20.5 字）ぴったりにして、
+   AA の左端＝吹き出しの左端という実機どおりの見え方にする。
+   画面が狭いときは字を縮めて必ず 1 行が横スクロールなしで収まる */
+.chat-canvas {
+    flex: none;
+    box-sizing: content-box;
+    width: 20.5em;
+    padding: 12px 16px;
     background: #e8f0e6;
     border-radius: 12px;
-    padding: 12px 16px;
     font-family: "Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif;
     /* 実機の行ピッチは全角 1 文字幅の 1.75 倍（スクショ実測 42px / 24px）。
        文字幅と同じく縦も実機比率に合わせないと、AA の縦横比が変わって見える */
     line-height: 1.75;
-    overflow-x: auto;
-    container-type: inline-size;
-}
-/* 実機 1 行ぶん（全角 20.5 字）の枠。吹き出しより狭ければ中央に置き、
-   広ければ字を縮めて必ず 1 行が収まるようにする（実機と同じ左右位置になる） */
-.chat-canvas {
-    font-size: min(0.95rem, calc(100cqw / 20.5));
-    width: 20.5em;
-    margin: 0 auto;
+    font-size: min(0.95rem, calc((100cqw - 32px) / 20.5));
 }
 .chat-line {
     white-space: nowrap;
