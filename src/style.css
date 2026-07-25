@@ -301,11 +301,18 @@ body {
     border-radius: 12px;
     padding: 12px 16px;
     font-family: "Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 0.95rem;
     /* 実機の行ピッチは全角 1 文字幅の 1.75 倍（スクショ実測 42px / 24px）。
        文字幅と同じく縦も実機比率に合わせないと、AA の縦横比が変わって見える */
     line-height: 1.75;
     overflow-x: auto;
+    container-type: inline-size;
+}
+/* 実機 1 行ぶん（全角 20.5 字）の枠。吹き出しより狭ければ中央に置き、
+   広ければ字を縮めて必ず 1 行が収まるようにする（実機と同じ左右位置になる） */
+.chat-canvas {
+    font-size: min(0.95rem, calc(100cqw / 20.5));
+    width: 20.5em;
+    margin: 0 auto;
 }
 .chat-line {
     white-space: nowrap;

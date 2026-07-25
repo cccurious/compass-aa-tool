@@ -32,9 +32,13 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
             <section className="card-inputs">
                 <div className="section-title">{title ?? 'チャット表示プレビュー'}</div>
                 <div className="chat-bubble">
-                    {result.preview.map((line, i) => (
-                        <ChatLine key={i} text={line.text} />
-                    ))}
+                    {/* 実機 1 行ぶんの幅（全角 20.5 字）を持つ枠。これを中央に置くことで
+                        吹き出し内の左右位置まで実機と同じ見え方になる */}
+                    <div className="chat-canvas">
+                        {result.preview.map((line, i) => (
+                            <ChatLine key={i} text={line.text} />
+                        ))}
+                    </div>
                 </div>
                 {result.overflowLines.length > 0 && (
                     <div className="warn-note">
