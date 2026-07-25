@@ -95,8 +95,24 @@ const FALLBACK_RANGES: [number, number][] = [
   [0x2460, 0x27bf], // 囲み数字・罫線・図形・記号
 ];
 
-/** 実機で 1.0 動作を確認済みのフォールバック文字（isKnownWidth も true にする） */
-const FALLBACK_VERIFIED = new Set(['⌒', '´']);
+/**
+ * 実機プローブで幅 1.0 を確認済みの文字（2026-07-25 の一括検証 B/D/G/H/I/J/K/L）。
+ * 「テスト 20 文字＋判定文字 O」で 2 行目に O だけが落ちることを確認した群。
+ * ※ § ¶ ± × ÷ † ‡ ‰ ′ ″ ‥ … 〝 〟 は推定 0.5 だったが実機は 1.0 だった。
+ */
+const VERIFIED_FULLWIDTH = new Set(
+  Array.from(
+    '⌒´' +
+      '∴∵≒≠≡≦≧⊂⊃⊆⊇⊥∽≪≫∟⊿⇔↕' + // B 数学記号2
+      'αβγδεζηθικλμνξοπρστω' + // D ギリシャ小文字
+      '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳' + // G 囲み数字
+      '「」『』【】〈〉《》〔〕〜〆〇々〃〒・※' + // H 日本語の約物
+      '＿＾｀＼｜／～＝＋－＊＃＠＆％＄！？：；' + // I 全角記号
+      'ぁぃぅぇぉっゃゅょゎァィゥェォヵヶゝゞ゛' + // J 小書き・繰り返し
+      'ⅠⅡⅢⅣⅤⅵⅶⅷⅸⅹ℡№㈱㈲㍻㎜㎝㎞㎏㎡' + // K 機種依存・単位
+      '§¶†‡‰′″‥…〝〟±×÷∝∮⇄⇅', // L 欧文記号・約物
+  ),
+);
 
 /**
  * 実機で 1.0 動作を範囲ごと確認済みのフォールバック領域。
@@ -119,6 +135,8 @@ const inRanges = (cp: number, ranges: [number, number][]) =>
 export function charWidth(ch: string): number {
   const d = DEVICE_OVERRIDES[ch];
   if (d !== undefined) return d;
+  // 実機確認済みの全角（※ § ± … などクラス分けでは 0.5 と誤推定される文字を含む）
+  if (VERIFIED_FULLWIDTH.has(ch)) return 1.0;
   const cp = ch.codePointAt(0)!;
   if (inRanges(cp, HALF_RANGES)) {
     const w = BIZ_WIDTHS[ch];
@@ -136,7 +154,7 @@ export function charWidth(ch: string): number {
  * false の文字は推定幅になり、折り返し位置が実機とずれる可能性がある。
  */
 export function isKnownWidth(ch: string): boolean {
-  if (DEVICE_OVERRIDES[ch] !== undefined || FALLBACK_VERIFIED.has(ch)) return true;
+  if (DEVICE_OVERRIDES[ch] !== undefined || VERIFIED_FULLWIDTH.has(ch)) return true;
   const cp = ch.codePointAt(0)!;
   if (inRanges(cp, FALLBACK_VERIFIED_RANGES)) return true;
   if (inRanges(cp, HALF_RANGES)) return BIZ_WIDTHS[ch] !== undefined || !BIZ_MISSING.has(ch);

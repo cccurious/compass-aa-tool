@@ -164,8 +164,8 @@ describe('convert: 1 文字ブレーク最適化（語先読み改行の逆用�
         const result = convert('■'.repeat(15) + '\n' + '●'.repeat(15));
         expect(result.lines[0].padding).toBe(' ');
     });
-    it('幅未確認文字（ω 等）を含む境界は誤発火せず通常パディング', () => {
-        const result = convert('ω'.repeat(15) + '\n' + '●'.repeat(15));
+    it('幅未確認文字を含む境界は誤発火せず通常パディング（U+E000 は恒久的に未確認）', () => {
+        const result = convert(''.repeat(15) + '\n' + '●'.repeat(15));
         expect(result.lines[0].padding.length).toBeGreaterThan(1);
     });
 });
@@ -211,5 +211,18 @@ describe('行数上限（キャンバス設計の根拠・2026-07-25 実測）',
     });
     it('物理上限 15 行を超える密度は存在しない（MAX_ROWS の根拠）', () => {
         for (let w = 1; w <= 20; w++) expect(rowsThatFit(w)).toBeLessThanOrEqual(MAX_ROWS);
+    });
+});
+
+describe('一括検証で確定した幅（2026-07-25 プローブ A〜N）', () => {
+    it('推定 0.5 だった約物・欧文記号は実機 1.0 だった', () => {
+        for (const ch of '※§¶±×÷†‡‰′″‥…〝〟') expect(textWidth(ch)).toBe(1.0);
+    });
+    it('確認済み全角は警告対象から外れる', () => {
+        expect(convert('※§±…〆〇\nあ').unknownWidthLines).toEqual([]);
+        expect(convert('αβγ①②③\nあ').unknownWidthLines).toEqual([]);
+    });
+    it('未検証グループ（矢印 ← など）は警告が残る', () => {
+        expect(convert('←↑→↓\nあ').unknownWidthLines.length).toBe(1);
     });
 });
