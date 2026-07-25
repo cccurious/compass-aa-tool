@@ -276,7 +276,9 @@ body {
     grid-template-columns: repeat(20, 1fr);
 }
 .dot-cell {
-    aspect-ratio: 1;
+    /* 実機の 1 マスは横 1 : 縦 1.75（行ピッチ 42px / 全角幅 24px の実測）。
+       正方形で描くと実機で縦に伸びるため、入力面も同じ比率にする */
+    aspect-ratio: 1 / 1.75;
     display: flex;
     align-items: center;
     justify-content: center;
