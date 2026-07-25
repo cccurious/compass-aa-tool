@@ -21,6 +21,11 @@ describe('metrics.textWidth（実機校正済み 3 層モデル）', () => {
     it('_ は ASCII だがアトラス漏れで固定 0.5（R7 実測。BIZ 0.311 不採用）', () => {
         expect(textWidth('_')).toBe(0.5);
     });
+    it('R8 実測の記号は DEVICE_OVERRIDES が BIZ 値に優先する', () => {
+        expect(textWidth('|')).toBe(0.29);
+        expect(textWidth('=')).toBe(0.54);
+        expect(textWidth('r')).toBeCloseTo(0.4594, 4); // 英字は BIZ のまま
+    });
 });
 
 describe('wrap.simulateWrap', () => {
