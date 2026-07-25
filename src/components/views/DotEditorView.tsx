@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import {
     useDotStore,
-    PRESET_PALETTE,
+    PALETTE_CATEGORIES,
     MAX_ROWS,
     MAX_CUSTOM_CHARS,
 } from '../../store/useDotStore';
@@ -20,7 +20,17 @@ export const DotEditorView = ({ onSendToConverter }: DotEditorViewProps) => {
     } = useDotStore();
     const [charInput, setCharInput] = useState('');
     const [toast, setToast] = useState('');
+    const [category, setCategory] = useState(PALETTE_CATEGORIES[0].id);
     const paintingRef = useRef(false);
+
+    // 追加した文字は専用カテゴリにまとめる（プリセットと混ざらないように）
+    const tabs = [
+        ...PALETTE_CATEGORIES,
+        ...(customPalette.length > 0
+            ? [{ id: 'custom', label: '追加分', chars: customPalette }]
+            : []),
+    ];
+    const shown = tabs.find((t) => t.id === category) ?? tabs[0];
 
     const text = useMemo(() => gridToText(grid), [grid]);
     const result = useMemo(() => (text ? convert(text) : null), [text]);
@@ -38,7 +48,10 @@ export const DotEditorView = ({ onSendToConverter }: DotEditorViewProps) => {
         if (skipped.length > 0) parts.push(`半角など ${skipped.length} 字は対象外`);
         if (overflow.length > 0) parts.push(`上限 ${MAX_CUSTOM_CHARS} 字のため ${overflow.length} 字は省略`);
         showToast(parts.length > 0 ? parts.join(' ／ ') : '追加できる新しい全角文字がありません');
-        if (added.length > 0) setCharInput('');
+        if (added.length > 0) {
+            setCharInput('');
+            setCategory('custom');
+        }
     };
 
     const handleCopy = async () => {
@@ -64,6 +77,17 @@ export const DotEditorView = ({ onSendToConverter }: DotEditorViewProps) => {
         <div>
             <section className="card-inputs">
                 <div className="section-title">パレット</div>
+                <div className="dot-tabs">
+                    {tabs.map((t) => (
+                        <button
+                            key={t.id}
+                            className={`dot-tab ${shown.id === t.id ? 'active' : ''}`}
+                            onClick={() => setCategory(t.id)}
+                        >
+                            {t.label}
+                        </button>
+                    ))}
+                </div>
                 <div className="dot-palette">
                     <button
                         className={`dot-palette-btn ${brush === '' ? 'active' : ''}`}
@@ -72,7 +96,7 @@ export const DotEditorView = ({ onSendToConverter }: DotEditorViewProps) => {
                     >
                         消
                     </button>
-                    {[...PRESET_PALETTE, ...customPalette].map((ch) => (
+                    {shown.chars.map((ch) => (
                         <button
                             key={ch}
                             className={`dot-palette-btn ${brush === ch ? 'active' : ''}`}
@@ -91,7 +115,13 @@ export const DotEditorView = ({ onSendToConverter }: DotEditorViewProps) => {
                     />
                     <button className="bulk-btn" onClick={handleAddChars}>パレットに追加</button>
                     {customPalette.length > 0 && (
-                        <button className="bulk-btn" onClick={clearCustom}>
+                        <button
+                            className="bulk-btn"
+                            onClick={() => {
+                                clearCustom();
+                                setCategory(PALETTE_CATEGORIES[0].id);
+                            }}
+                        >
                             追加分を消去（{customPalette.length}）
                         </button>
                     )}

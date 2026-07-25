@@ -2,11 +2,29 @@ import { create } from 'zustand';
 import { DotGrid, emptyGrid, GRID_COLS } from '../core/grid';
 import { charWidth } from '../core/metrics';
 
-/** プリセットは実機で表示・幅を検証済みの全角文字のみ */
-export const PRESET_PALETTE = [
-  '█', '▓', '▒', '░', '▌',
-  '■', '□', '●', '○', '◆', '◇', '▲', '△', '▼', '▽', '★', '☆', '・', 'ω',
+/**
+ * プリセットはドット絵に使える全角文字のみ（すべて実機で幅 1.0 を検証済み）。
+ * 丸・ひし形・中央寄せの三角・装飾記号は「隣のマスと繋がらない」ため入れない。
+ */
+export interface PaletteCategory {
+  id: string;
+  label: string;
+  chars: string[];
+}
+
+export const PALETTE_CATEGORIES: PaletteCategory[] = [
+  // 濃淡 4 段と、余白のある四角（■□ は █ と違い点として使える）
+  { id: 'block', label: 'ブロック', chars: [...'█▓▒░■□▀▄▌▐'] },
+  // セルの角から角まで塗るので斜線・カーブが隣と繋がる
+  { id: 'tri', label: '三角', chars: [...'◤◥◣◢'] },
+  // 1 マスを 2×2 の 4 ドットとして扱える＝実質解像度が 2 倍になる
+  { id: 'quarter', label: '4分割', chars: [...'▘▝▖▗▚▞▛▜▙▟'] },
+  { id: 'line', label: '罫線', chars: [...'─│┌┐└┘├┤┬┴┼'] },
+  { id: 'bold', label: '太線', chars: [...'━┃┏┓┗┛┣┫┳┻╋'] },
 ];
+
+/** 互換用（テスト・一括追加の重複判定に使う全プリセット文字） */
+export const PRESET_PALETTE = PALETTE_CATEGORIES.flatMap((c) => c.chars);
 
 const INITIAL_ROWS = 8;
 

@@ -186,6 +186,34 @@ body {
 /* ===============================
    ドット打ちエディタ
 =============================== */
+.dot-tabs {
+    display: flex;
+    /* 折り返して縦に伸びるとキャンバスが押し下げられるので、1 段のまま横スクロール */
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 6px;
+    margin-bottom: 10px;
+    padding-bottom: 2px;
+}
+.dot-tab {
+    /* 5 タブが 375px 幅で 1 段に収まる寸法 */
+    padding: 6px 9px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    font-weight: bold;
+    color: var(--subdued-text);
+    background: var(--white);
+    border: 2px solid var(--border-color);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.dot-tab.active {
+    background: var(--dark-border);
+    border-color: var(--dark-border);
+    color: var(--primary-color);
+}
 .dot-palette {
     display: flex;
     flex-wrap: wrap;
