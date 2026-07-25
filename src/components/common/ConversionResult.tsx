@@ -1,11 +1,12 @@
 import { ConvertResult } from '../../core/convert';
+import { LINE_LIMIT, charWidth } from '../../core/metrics';
 import {
-    LINE_LIMIT,
-    MESSAGE_LIMIT_LENGTH,
-    MESSAGE_LIMIT_WIDTH,
-    charWidth,
+    LIMIT_WIDTH,
+    isOverLimit,
     messageCost,
-} from '../../core/metrics';
+    overBy,
+    remainingFullWidth,
+} from '../../core/limit';
 import { HelpTooltip } from './HelpTooltip';
 
 /**
@@ -33,23 +34,15 @@ interface ConversionResultProps {
 
 /** プレビュー・警告・文字数カウンタ・コピーボタン（貼り付け／ドット打ち共通） */
 export const ConversionResult = ({ result, onCopy, title }: ConversionResultProps) => {
-    // 実機の上限は 2 本立て（metrics.ts の v4 モデル）:
-    //   A: 長さ 271.5（全角の直後の半角スペースだけ 16）／ B: 幅換算 184（半角 0.5）
+    // 実機の上限は 2 本立て（core/limit.ts の v5 モデル）:
+    //   A: 長さ 196（改行を起こす半角スペースだけ 6.75）／ B: 幅換算 184（半角 0.5）
     const cost = messageCost(result.output);
-    const overA = cost.length > MESSAGE_LIMIT_LENGTH;
-    const overB = cost.width > MESSAGE_LIMIT_WIDTH;
-    const over = overA || overB;
-    // 「あと全角何文字置けるか」= 両予算の残りの小さい方（全角 1 字は A/B とも 1 消費）
-    const remain = Math.floor(
-        Math.min(MESSAGE_LIMIT_LENGTH - cost.length, MESSAGE_LIMIT_WIDTH - cost.width),
-    );
-    const overBy = Math.ceil(
-        Math.max(cost.length - MESSAGE_LIMIT_LENGTH, cost.width - MESSAGE_LIMIT_WIDTH),
-    );
-    // 超過の主因が「全角直後の半角スペース」のときは内訳を添える（何を減らすべきか示す）
+    const over = isOverLimit(cost);
+    const remain = remainingFullWidth(cost);
+    // 超過の主因が改行スペースのときは内訳を添える（何を減らすべきか示す）
     const spaceHint =
-        overA && cost.heavySpaces > 0
-            ? `（全角の直後の半角スペース ${cost.heavySpaces} 個が 1 個 16 文字ぶんを消費）`
+        over && cost.breakSpaces > 0
+            ? `（行の折り返し ${cost.breakSpaces} か所が 1 か所で全角 6 文字ぶんを消費）`
             : '';
     return (
         <>
@@ -112,10 +105,10 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
 
             <div className={`char-count ${over ? 'over' : ''}`}>
                 {over
-                    ? `上限超過 — 全角 ${overBy} 文字ぶん減らしてください${spaceHint}`
-                    : `残り 全角 ${remain} 文字ぶん（幅換算 ${cost.width} / ${MESSAGE_LIMIT_WIDTH}）`}
+                    ? `上限超過 — 全角 ${overBy(cost)} 文字ぶん減らしてください${spaceHint}`
+                    : `残り 全角 ${remain} 文字ぶん（幅換算 ${cost.width} / ${LIMIT_WIDTH}）`}
                 <HelpTooltip
-                    text={`上限は 2 つあります。① 全角換算 ${MESSAGE_LIMIT_WIDTH} 文字ぶん（半角の文字とスペースは 0.5 文字ぶん）。② 長さ 271 文字ぶん（全角文字の直後にある半角スペースだけ、1 個で全角 16 文字ぶんに膨らみます）。どちらかを超えたぶんは送信時に末尾が切り捨てられます。カウンタの残りは 2 つのうち厳しい方です。`}
+                    text={`ゲーム側の上限は「全角換算 ${LIMIT_WIDTH} 文字ぶん」と「長さ 196 文字ぶん」の 2 つで、どちらかを超えると送信時に末尾が切り捨てられます。長さの方は、行の折り返しが 1 回起きるたびに全角 6 文字ぶん余分にかかります（＝行数が多いほど早く上限に届きます）。カウンタの残りは厳しい方の値です。`}
                 />
             </div>
             <button className="primary-btn" onClick={onCopy}>

@@ -27,69 +27,9 @@ export const LIMIT_FORCE = 20.548;
 export const LINE_LIMIT = (LIMIT_SAFE + LIMIT_FORCE) / 2;
 
 /**
- * 1 メッセージの上限は **2 本立て**（2026-07-25 プローブ 26 本で確定・v4）。
- * どちらかを超えた分が入力欄の確定時に末尾から切り捨てられる。
- *
- * 上限 A（長さ・LIMIT_LENGTH=271.5）:
- *   全角(幅1.0)=1・半角=0.5・半角スペースは**直前の文字が全角のときだけ 16**、
- *   それ以外（直前が半角・スペース・全角スペースの直後）は軽い。
- *   軽いスペースと半角の正確な重みは未確定のため、判定は安全側の重み
- *   （軽い sp=1）で行う（v4.1: 電球＋あ×12 の切断実測による保守化）。
- * 上限 B（幅換算・LIMIT_WIDTH=184）:
- *   全角=1・半角(スペース含む)=0.5。内部の 2 バイト換算（368 バイト相当）の匂い。
- *
- * 根拠となる決定打:
- * - スペース 8 個のドット絵（全て全角直後）は非 sp 143 個で切断 = A ちょうど 271
- * - 同型で先頭に半角 a を足しても切断位置が全く動かない（a=0.5・A=271.5 まで残存）
- * - あ×220 は**スペースなしなのに 184 個**で切断・a+あ×220 は a+183 で切断 = B
- * - 半角スペース 30 個の電球 AA（187 字）が無傷 = スペースの大半が全角スペースや
- *   半角の直後で 0.5 扱い（A=259・B=166）
- * - あ×176（UTF-8 528B）無傷 → 旧 512 バイト説は反証済み
- * 詳細は calibration-plan.md「メッセージ上限の最終モデル v4」。
+ * 送信上限の判定は core/limit.ts へ移した（折り返しの発生位置に依存するため、
+ * 幅テーブルだけでは決まらない）。ここは幅と分類の責務に専念する。
  */
-export const MESSAGE_LIMIT_LENGTH = 271.5;
-export const MESSAGE_LIMIT_WIDTH = 184;
-
-export interface MessageCost {
-    /** 上限 A 用の長さ（全角の直後の半角スペース=16 の重み付き） */
-    length: number;
-    /** 上限 B 用の幅換算（全角 1・半角 0.5） */
-    width: number;
-    /** 16 換算になっている半角スペースの個数（超過時の内訳表示用） */
-    heavySpaces: number;
-}
-
-/** 実機の上限判定に使うコスト（両上限ぶん）を一度に計算する */
-export function messageCost(text: string): MessageCost {
-    const chars = Array.from(text);
-    let length = 0;
-    let width = 0;
-    let heavySpaces = 0;
-    chars.forEach((c, i) => {
-        if (c === ' ') {
-            // 「直前が全角グリフ」のときだけ 16。全角スペースの直後などは軽い（電球 AA で実証）。
-            // 軽い方の正確な重みは [0.5, 1] の間で未確定（電球＋あ×12 の実測 v4.1 で、
-            // 0.5 だと 5 unit ほど過小評価になり「無傷判定なのに実機で 5 字切れる」が
-            // 起きた）。カウンタは安全側に倒す必要があるため 1 を採る
-            const prev = chars[i - 1];
-            const heavy =
-                prev !== undefined && prev !== ' ' && prev !== '　' && charWidth(prev) >= 1.0;
-            length += heavy ? 16 : 1;
-            if (heavy) heavySpaces++;
-            width += 0.5;
-            return;
-        }
-        const full = charWidth(c) >= 1.0;
-        length += full ? 1 : 0.5;
-        width += full ? 1 : 0.5;
-    });
-    return { length, width, heavySpaces };
-}
-
-/** どちらかの上限を超えているか */
-export function isOverMessageLimit(cost: MessageCost): boolean {
-    return cost.length > MESSAGE_LIMIT_LENGTH || cost.width > MESSAGE_LIMIT_WIDTH;
-}
 
 /**
  * 生成側の安全マージン（実機モデル由来の数値なのでここに集約する）。

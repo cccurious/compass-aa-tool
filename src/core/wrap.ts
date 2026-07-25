@@ -20,6 +20,54 @@ export interface SimLine {
     width: number;
 }
 
+/**
+ * 改行を発生させた半角スペースの位置（連続スペースは先頭の 1 個を代表とする）。
+ * 実機の送信上限は「改行を起こしたスペース」だけが極端に高くつくため、
+ * 上限判定（core/limit.ts）がこの分類を使う。
+ */
+export function spaceBreakIndices(oneLine: string, limit: number = LINE_LIMIT): Set<number> {
+    const chars = Array.from(oneLine);
+    const breaks = new Set<number>();
+    let curW = 0;
+    let curLen = 0;
+    let i = 0;
+    while (i < chars.length) {
+        const ch = chars[i];
+        if (ch === ' ') {
+            let j = i;
+            while (j < chars.length && chars[j] === ' ') j++;
+            let wordW = 0;
+            let k = j;
+            while (k < chars.length && chars[k] !== ' ') {
+                wordW += charWidth(chars[k]);
+                k++;
+            }
+            const spaceRunW = (j - i) * charWidth(' ');
+            if (curLen > 0 && wordW > 0 && curW + spaceRunW + wordW > limit) {
+                breaks.add(i);
+                curW = 0;
+                curLen = 0;
+                i = j;
+                continue;
+            }
+            curW += charWidth(' ');
+            curLen++;
+            i++;
+            continue;
+        }
+        const w = charWidth(ch);
+        if (curW + w > limit && curLen > 0) {
+            curW = 0;
+            curLen = 0;
+            continue;
+        }
+        curW += w;
+        curLen++;
+        i++;
+    }
+    return breaks;
+}
+
 export function simulateWrap(oneLine: string, limit: number = LINE_LIMIT): SimLine[] {
     const chars = Array.from(oneLine);
     const lines: SimLine[] = [];

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { gridToText, emptyGrid, GRID_COLS } from '../src/core/grid';
-import { textWidth, messageCost, isOverMessageLimit } from '../src/core/metrics';
+import { textWidth } from '../src/core/metrics';
+import { messageCost, isOverLimit } from '../src/core/limit';
 import { MAX_ROWS } from '../src/store/useDotStore';
 import { simulateWrap } from '../src/core/wrap';
 import { convert } from '../src/core/convert';
@@ -118,8 +119,9 @@ describe('convert: 全角充填パディング（units 再校正後の最優先�
         // ラウンドトリップ: 文字単位折り返しで 2 行に割れる
         const rendered = result.preview.map((l) => l.text.replace(/[ \u3000]+$/, ''));
         expect(rendered).toEqual(src);
-        // 長さコスト: 半角スペース式（30+16=46）より安い 35
-        expect(messageCost(result.output).length).toBe(35);
+        // 長さコスト: 全角 30 + 全角スペース 5×0.75 = 33.75
+        // （半角スペース 1 個で改行させる方式なら 30 + 6.75 = 36.75 かかる）
+        expect(messageCost(result.output).length).toBe(33.75);
     });
     it('幅 20 ちょうどの行はパディング 0 文字（境界コスト完全ゼロ）', () => {
         const result = convert('█'.repeat(20) + '\n' + '▓'.repeat(20));
@@ -140,8 +142,9 @@ describe('convert: 全角充填パディング（units 再校正後の最優先�
         ].join('\n');
         const result = convert(src);
         expect(result.output).not.toContain(' ');
-        expect(messageCost(result.output)).toEqual({ length: 175, width: 175, heavySpaces: 0 });
-        expect(isOverMessageLimit(messageCost(result.output))).toBe(false);
+        // 全角スペースは幅 1・長さ 0.75 の二面性を持つ（v5 モデル）
+        expect(messageCost(result.output)).toEqual({ length: 152, width: 175, breakSpaces: 0 });
+        expect(isOverLimit(messageCost(result.output))).toBe(false);
     });
 });
 
@@ -188,7 +191,7 @@ describe('行数上限（キャンバス設計の根拠・2026-07-25 実測）',
         let max = 0;
         for (let rows = 1; rows <= 20; rows++) {
             const src = Array.from({ length: rows }, () => '█'.repeat(width)).join('\n');
-            if (!isOverMessageLimit(messageCost(convert(src).output))) max = rows;
+            if (!isOverLimit(messageCost(convert(src).output))) max = rows;
         }
         return max;
     };
