@@ -230,6 +230,12 @@ body {
     background: #fffbeb; border-left: 3px solid #f59e0b; border-radius: 4px;
     padding: 8px 12px; margin-top: 12px; font-size: 0.8rem; color: #92400e;
 }
+/* 条件つきの警告（warn-note）と違い、常時出しておく状況説明。
+   注意は引きたいが「エラー」には見せたくないので青系にする */
+.notice-note {
+    background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px;
+    padding: 10px 12px; margin-top: 12px; font-size: 0.78rem; line-height: 1.7; color: #1e40af;
+}
 
 /* ===============================
    AA 変換（入力欄・文字数カウンタ）
