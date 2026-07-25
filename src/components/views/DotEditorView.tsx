@@ -228,10 +228,7 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                         {customPalette.length > 0 && (
                             <button
                                 className="bulk-btn"
-                                onClick={() => {
-                                    clearCustom();
-                                    setCategory(PALETTE_CATEGORIES[0].id);
-                                }}
+                                onClick={clearCustom}
                             >
                                 追加分を消去（{customPalette.length}）
                             </button>
