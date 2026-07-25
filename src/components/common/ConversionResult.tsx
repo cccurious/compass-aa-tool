@@ -96,11 +96,13 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
                 )}
                 {result.deviceVariantLines.length > 0 && (
                     <div className="warn-note">
-                        ⚠️ iOS と Android で見え方が違う文字が含まれています（
+                        ⚠️ ゲーム内で正しく表示できない文字が含まれています（
                         {result.deviceVariantLines
                             .map((u) => `${u.line + 1}行目: ${u.chars.join(' ')}`)
                             .join(' ／ ')}
-                        ）。送った端末と見る人の端末が違うと形が崩れることがあります。
+                        ）。半分の幅になる・表示されないなどの理由で形が崩れます。 iOS と Android
+                        で結果が違うものもあるため、
+                        自分の端末で正常に見えても相手の端末では崩れることがあります。
                     </div>
                 )}
                 {result.deviceWrapRiskLines.length > 0 && (
