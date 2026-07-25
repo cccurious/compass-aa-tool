@@ -60,14 +60,6 @@ export const AaConverterView = () => {
                                 （全角約 {Math.floor(LINE_LIMIT)} 文字）を超えています。行を短くしてください。
                             </div>
                         )}
-                        {result.normalizedChanges.length > 0 && (
-                            <div className="info-note">
-                                ℹ️ ゲーム側の自動変換を先取りしました:{' '}
-                                {result.normalizedChanges
-                                    .map((c) => `${c.line + 1}行目 ${c.from} → ${c.to}`)
-                                    .join(' ／ ')}
-                            </div>
-                        )}
                         {result.unknownWidthLines.length > 0 && (
                             <div className="warn-note">
                                 ⚠️ 幅が未確認の文字が含まれています（

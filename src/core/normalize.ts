@@ -1,42 +1,17 @@
 /**
- * 実機（#コンパス チャット）の入力正規化の再現。
+ * 実機（#コンパス チャット）の文字変換の記録。
  *
- * ゲーム側は送信時に一部の半角文字を全角へ自動変換する（実機で送信→コピーで
- * 回収したテキストとの diff で確認）。ツール側で同じ変換を先取りしてから
- * 幅計算・パディングすることで、プレビュー＝実機表示を保つ。
+ * ⚠️ 2026-07-25 再診断: `. / :` の全角化は**コピー（書き出し）時のみ**発生する。
+ * 送信・表示は半角のまま（R4 プローブの表示スクショで `-./0123` が半角詰まりで
+ * 表示されることを確認）。つまり表示幅は半角の値のままであり、
+ * **変換の先取りをしてはいけない**（一度先取りを実装して誤診と判明・撤回）。
  *
- * 確認済みマップ（2026-07-25 ラウンド 4 コピーバック diff で網羅）:
- * - `.` `/` `:` の 3 文字のみ全角へ変換される（URL 無効化フィルタと推定）。
- * - ASCII 英数・他の記号・半角カナ・濁半濁点は全て素通り。削除される文字は無し。
+ * このマップは「コピーバック検証の diff を読むとき、この 3 文字の差分は
+ * コピー時変換であって送信文字列の破損ではない」という照合用の記録として残す。
+ * （URL 無効化フィルタと推定。ASCII 英数・他の記号・半角カナは素通り・削除なし）
  */
-export const DEVICE_NORMALIZE: ReadonlyMap<string, string> = new Map([
-  ['.', '．'], // 幅 0.278 → 1.0
-  ['/', '／'], // 幅 0.5?  → 1.0
-  [':', '：'], // 幅 0.278? → 1.0
+export const COPY_EXPORT_NORMALIZE: ReadonlyMap<string, string> = new Map([
+  ['.', '．'],
+  ['/', '／'],
+  [':', '：'],
 ]);
-
-export interface NormalizedChange {
-  line: number;
-  from: string;
-  to: string;
-}
-
-/** 1 行に実機正規化を適用し、置換があれば変更内容を返す */
-export function normalizeRow(
-  row: string,
-  lineNo: number,
-): { text: string; changes: NormalizedChange[] } {
-  let text = '';
-  const seen = new Map<string, string>();
-  for (const ch of Array.from(row)) {
-    const to = DEVICE_NORMALIZE.get(ch);
-    if (to !== undefined) {
-      text += to;
-      seen.set(ch, to);
-    } else {
-      text += ch;
-    }
-  }
-  const changes = [...seen].map(([from, to]) => ({ line: lineNo, from, to }));
-  return { text, changes };
-}

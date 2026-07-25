@@ -63,15 +63,11 @@ describe('convert', () => {
         ];
         const result = convert(src.join('\n'));
         const rendered = result.preview.map((l) => l.text.replace(/[ 　]+$/, ''));
-        // 実機は . を ． へ自動変換するため、期待値も正規化後の姿
-        const expected = src.map((s) => s.replace(/\./g, '．').replace(/[ 　]+$/, ''));
-        expect(rendered).toEqual(expected);
+        expect(rendered).toEqual(src.map((s) => s.replace(/[ 　]+$/, '')));
     });
-    it('実機の自動変換を先取りする: . → ．（幅 0.278 → 1.0）', () => {
-        const result = convert('.　あ\nい');
-        expect(result.normalizedChanges).toEqual([{ line: 0, from: '.', to: '．' }]);
-        expect(result.output.startsWith('．　あ')).toBe(true);
-        expect(result.preview[0].text.startsWith('．　あ')).toBe(true);
+    it('半角 . / : はそのまま送る（全角化はコピー時のみで表示は半角のまま）', () => {
+        const result = convert('.　/:あ\nい');
+        expect(result.output.startsWith('.　/:あ')).toBe(true);
     });
     it('パディングは先頭に半角スペース 1 個を挟む（語の癒着を切る）', () => {
         const result = convert('あいう\nかきく');
