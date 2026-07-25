@@ -119,6 +119,9 @@ body {
     padding: 6px 12px; background: #edf2f7; border: 1px solid var(--border-color);
     border-radius: 16px; font-size: 0.8rem; font-weight: bold; color: var(--text-color);
     cursor: pointer; transition: all 0.2s; outline: none; box-shadow: 1px 1px 0px rgba(0,0,0,0.05);
+    /* ラベルがボタン内で 2 行に折れると列の見栄えが崩れる。狭ければ短縮ラベル
+       （.btn-short）へ切り替える方針なので、折り返しは常に禁止 */
+    white-space: nowrap;
 }
 .bulk-btn:active { background: #e2e8f0; transform: translateY(1px); box-shadow: none; }
 
@@ -465,6 +468,19 @@ body {
 /* アンドゥだけ左端へ寄せる（右側の行操作・全消去と役割が違うことを位置で示す） */
 .dot-undo-btn { margin-right: auto; }
 .dot-undo-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* キャンバス下のボタンラベル: 拡大ボタンが出る幅（= 5 ボタン並ぶ幅）では
+   フルラベルが 1 行に収まらないため短縮形へ切り替える */
+.btn-short { display: none; }
+@media (max-width: 640px) {
+    .dot-actions-row .btn-long { display: none; }
+    .dot-actions-row .btn-short { display: inline; }
+}
+/* さらに狭い端末（〜375px 級）では余白も詰めて 1 行を守る */
+@media (max-width: 480px) {
+    .dot-actions-row { gap: 4px; }
+    .dot-actions-row .bulk-btn { padding: 6px 8px; font-size: 0.75rem; }
+}
 .dot-grid-row {
     display: grid;
     /* 20 = GRID_COLS（src/core/grid.ts）。列数を変えるときは両方まとめて */

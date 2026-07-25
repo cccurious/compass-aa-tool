@@ -65,29 +65,39 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                         <div className="dot-scrollbar-thumb" ref={thumbRef} />
                     </div>
                 )}
-                <div className="bulk-actions">
+                {/* 拡大ボタンが出る幅（640px 以下）では 5 ボタンが 1 行に収まらないため、
+                    そこだけ CSS で短縮ラベル（btn-short）へ切り替える */}
+                <div className="bulk-actions dot-actions-row">
                     <button
                         className="bulk-btn dot-undo-btn"
                         onClick={undo}
                         disabled={history.length === 0}
                     >
-                        ↩ 元に戻す
+                        ↩ <span className="btn-long">元に</span>戻す
                     </button>
                     <button
                         className={`bulk-btn dot-zoom-btn ${zoomed ? 'active' : ''}`}
                         onClick={toggleZoom}
                     >
-                        {zoomed ? '等倍にもどす' : '拡大'}
+                        {zoomed ? (
+                            <>
+                                等倍<span className="btn-long">にもどす</span>
+                            </>
+                        ) : (
+                            '拡大'
+                        )}
                     </button>
                     <button
                         className="bulk-btn"
                         onClick={addRow}
                         disabled={grid.length >= MAX_ROWS}
                     >
-                        行を追加
+                        <span className="btn-long">行を追加</span>
+                        <span className="btn-short">行＋</span>
                     </button>
                     <button className="bulk-btn" onClick={removeRow} disabled={grid.length <= 1}>
-                        行を削除
+                        <span className="btn-long">行を削除</span>
+                        <span className="btn-short">行−</span>
                     </button>
                     <button className="bulk-btn" onClick={clearAll}>
                         全消去
