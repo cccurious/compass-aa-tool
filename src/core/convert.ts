@@ -54,6 +54,11 @@ export interface ConvertResult {
     filteredSequenceLines: { line: number; sequences: string[] }[];
     /** 端末（iOS/Android）で見え方が変わる文字を含む行 */
     deviceVariantLines: { line: number; chars: string[] }[];
+    /**
+     * 半角文字が多く、端末による幅のブレで折り返し位置が変わりうる行。
+     * 全角だけの行は端末差の影響を受けないため、ここには入らない。
+     */
+    deviceWrapRiskLines: number[];
 }
 
 const HALF_SPACE_W = charWidth(' ');
@@ -74,6 +79,7 @@ export function convert(input: string): ConvertResult {
     const removedLines: { line: number; chars: string[] }[] = [];
     const filteredSequenceLines: { line: number; sequences: string[] }[] = [];
     const deviceVariantLines: { line: number; chars: string[] }[] = [];
+    const deviceWrapRiskLines: number[] = [];
     let output = '';
 
     // 前処理はここだけで行い、本処理も次行の先読みも「サニタイズ済みの行」しか見ない。
@@ -110,6 +116,12 @@ export function convert(input: string): ConvertResult {
         if (unknown.length > 0) unknownWidthLines.push({ line: i, chars: unknown });
         const contentW = textWidth(src);
         if (contentW > LIMIT_SAFE) overflowLines.push(i);
+        // 端末差の余裕を見ても行に収まるか。半角が多くて幅が上限に近い行は、
+        // 別の端末だと 1 行に収まらず勝手に折り返される（＝形が崩れる）
+        const halfInLine = Array.from(src).filter((c) => c !== '　' && charWidth(c) < 1.0).length;
+        if (contentW <= LIMIT_SAFE && contentW + halfInLine * MARGIN.HALF_DRIFT > LIMIT_SAFE) {
+            deviceWrapRiskLines.push(i);
+        }
 
         let padding = '';
         if (!isLast) {
@@ -196,7 +208,15 @@ export function convert(input: string): ConvertResult {
             // 端数マージン: 幅が全て実測済みの行は +1 で足りる。幅未確認の文字を
             // 含む行だけ +3（約 0.7 字分）の保険を残す（文字数節約・2026-07-25）。
             // 超過行（警告済み）は詰め物なしで自力折り返しに任せる
-            const margin = unknown.length > 0 ? MARGIN.TAIL_UNKNOWN : MARGIN.TAIL_KNOWN;
+            // 半角文字は端末ごとに幅が微妙に違う（iPhone で t の折り返しが 1 個ずれた
+            // 実測報告）。誤差は行内の半角の個数だけ累積し、足りないと「改行が起きず
+            // 2 行が繋がる」という一番痛い壊れ方をするので、その行だけ端数を厚くする
+            const halfCount = Array.from(src).filter(
+                (c) => c !== '　' && charWidth(c) < 1.0,
+            ).length;
+            const driftMargin = Math.ceil((halfCount * MARGIN.HALF_DRIFT) / HALF_SPACE_W);
+            const margin =
+                (unknown.length > 0 ? MARGIN.TAIL_UNKNOWN : MARGIN.TAIL_KNOWN) + driftMargin;
             const nHalf = Math.max(0, Math.ceil((LIMIT_FORCE - used) / HALF_SPACE_W) + margin);
             padding = ' ' + '　'.repeat(nFull) + ' '.repeat(nHalf);
         }
@@ -215,5 +235,6 @@ export function convert(input: string): ConvertResult {
         removedLines,
         filteredSequenceLines,
         deviceVariantLines,
+        deviceWrapRiskLines,
     };
 }

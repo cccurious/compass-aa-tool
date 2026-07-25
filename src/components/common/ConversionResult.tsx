@@ -103,6 +103,14 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
                         ）。送った端末と見る人の端末が違うと形が崩れることがあります。
                     </div>
                 )}
+                {result.deviceWrapRiskLines.length > 0 && (
+                    <div className="warn-note">
+                        ⚠️ {result.deviceWrapRiskLines.map((n) => n + 1).join(', ')} 行目は
+                        半角文字が多く幅が上限ぎりぎりです。半角文字の幅は端末によって
+                        わずかに違うため、別の端末では折り返されて形が崩れることがあります。
+                        少し短くすると安全です。
+                    </div>
+                )}
                 {result.unknownWidthLines.length > 0 && (
                     <div className="warn-note">
                         ⚠️ ゲーム内での幅が未確認の文字が含まれています（
