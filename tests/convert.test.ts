@@ -18,6 +18,9 @@ describe('metrics.textWidth（実機校正済み 3 層モデル）', () => {
         expect(textWidth('´')).toBe(1.0);
         expect(textWidth('⌒')).toBe(1.0);
     });
+    it('_ は ASCII だがアトラス漏れで固定 0.5（R7 実測。BIZ 0.311 不採用）', () => {
+        expect(textWidth('_')).toBe(0.5);
+    });
 });
 
 describe('wrap.simulateWrap', () => {
