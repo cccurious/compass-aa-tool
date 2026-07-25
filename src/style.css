@@ -332,6 +332,12 @@ body {
     color: var(--subdued-text);
     margin-bottom: 6px;
 }
+.dot-suggest { margin-top: 10px; }
+.dot-suggest-empty {
+    font-size: 0.8rem;
+    color: var(--subdued-text);
+    padding: 8px 0;
+}
 .dot-add-actions {
     display: flex;
     flex-wrap: wrap;

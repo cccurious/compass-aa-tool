@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { charWidth, isKnownWidth, classifyChar, textWidth } from '../src/core/metrics';
-import { PALETTE_CATEGORIES } from '../src/store/useDotStore';
+import { PALETTE_CATEGORIES, SUGGEST_CHARS } from '../src/store/useDotStore';
 
 /**
  * 実機の実測値そのものの回帰テスト。再校正（ゲーム更新で幅が変わったとき）は
@@ -78,6 +78,12 @@ describe('パレットの門番', () => {
                 expect(textWidth(ch), `${c.label} の ${ch}`).toBe(1.0);
                 expect(isKnownWidth(ch), `${c.label} の ${ch}`).toBe(true);
             }
+        }
+    });
+    it('「候補から選ぶ」の全文字も幅 1.0 かつ確認済み', () => {
+        for (const ch of SUGGEST_CHARS) {
+            expect(textWidth(ch), `候補 の ${ch}`).toBe(1.0);
+            expect(isKnownWidth(ch), `候補 の ${ch}`).toBe(true);
         }
     });
 });

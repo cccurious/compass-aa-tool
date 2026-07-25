@@ -2,9 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
     useDotStore,
     PALETTE_CATEGORIES,
+    PRESET_PALETTE,
+    SUGGEST_CHARS,
     MAX_ROWS,
     MAX_CUSTOM_CHARS,
 } from '../../store/useDotStore';
+
 import { gridToText, GRID_COLS } from '../../core/grid';
 import { convert } from '../../core/convert';
 import { ConversionResult } from '../common/ConversionResult';
@@ -23,6 +26,7 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
         setCellValue, addPaletteChars, clearCustom, addRow, removeRow, clearAll,
     } = useDotStore();
     const [charInput, setCharInput] = useState('');
+    const [showSuggest, setShowSuggest] = useState(false);
     const [toast, setToast] = useState('');
     const [category, setCategory] = useState(PALETTE_CATEGORIES[0].id);
     // 拡大表示（スマホでマスが小さく狙いにくいため）。等倍が既定なので PC は従来どおり
@@ -43,14 +47,26 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
     const toggleZoom = () => {
         const w = wrapRef.current;
         // いま見ている場所（中心）の比率を保ったまま拡大縮小する
-        const center = w ? (w.scrollLeft + w.clientWidth / 2) / w.scrollWidth : 0.5;
+        const center = w && w.scrollWidth > 0 ? (w.scrollLeft + w.clientWidth / 2) / w.scrollWidth : 0.5;
         setZoomed((v) => !v);
-        // 幅のアニメーション（0.25s）が終わってからスクロール位置を合わせる
+        // 幅アニメーションの間も毎フレーム追従させる。アニメ後にまとめて合わせると
+        // 「別の場所で拡大 → 中央へ跳ぶ」ように見える（実機フィードバック）
+        const start = performance.now();
+        const step = (now: number) => {
+            const w2 = wrapRef.current;
+            if (w2) {
+                w2.scrollLeft = center * w2.scrollWidth - w2.clientWidth / 2;
+                updateThumb();
+            }
+            if (now - start < 350) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+        // rAF はタブが背面にあると止まるため、最終位置は setTimeout でも保証する
         window.setTimeout(() => {
             const w2 = wrapRef.current;
             if (w2) w2.scrollLeft = center * w2.scrollWidth - w2.clientWidth / 2;
             updateThumb();
-        }, 300);
+        }, 400);
     };
     const paintingRef = useRef(false);
     const wrapRef = useRef<HTMLDivElement>(null);
@@ -81,17 +97,25 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
         };
     }, [endStroke]);
 
-    // 最近使った文字を先頭に、追加した文字は専用カテゴリにまとめる
+    // 最近使った文字を先頭に。「追加分」は空でも常に出す
+    // （タブを開くと追加用の UI が現れる、という入口を兼ねるため）
     const tabs = [
         ...(recentChars.length > 0
             ? [{ id: 'recent', label: '最近', chars: recentChars }]
             : []),
         ...PALETTE_CATEGORIES,
-        ...(customPalette.length > 0
-            ? [{ id: 'custom', label: '追加分', chars: customPalette }]
-            : []),
+        { id: 'custom', label: '追加分', chars: customPalette },
     ];
     const shown = tabs.find((t) => t.id === category) ?? tabs[0];
+
+    // 追加候補: ゲーム内での幅 1.0 が確認済みで、まだパレットに無い文字
+    const suggestions = useMemo(
+        () =>
+            SUGGEST_CHARS.filter(
+                (ch) => !PRESET_PALETTE.includes(ch) && !customPalette.includes(ch),
+            ),
+        [customPalette],
+    );
 
     const text = useMemo(() => gridToText(grid), [grid]);
     const result = useMemo(() => (text ? convert(text) : null), [text]);
@@ -110,10 +134,7 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
         if (skipped.length > 0) parts.push(`マス目に置けない ${skipped.length} 字は除外`);
         if (overflow.length > 0) parts.push(`上限 ${MAX_CUSTOM_CHARS} 字のため ${overflow.length} 字は省略`);
         showToast(parts.length > 0 ? parts.join(' ／ ') : '追加できる文字が見つかりませんでした');
-        if (added.length > 0) {
-            setCharInput('');
-            setCategory('custom');
-        }
+        if (added.length > 0) setCharInput('');
     };
 
     const handleCopy = async () => {
@@ -180,22 +201,31 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                             {ch}
                         </button>
                     ))}
+                    {shown.id === 'custom' && shown.chars.length === 0 && (
+                        <span className="dot-suggest-empty">
+                            まだありません。下の欄か「候補から選ぶ」で追加できます。
+                        </span>
+                    )}
                 </div>
+                {shown.id === 'custom' && (
                 <div className="dot-add">
                     {/* 説明はラベルとして常に見える位置に置く。placeholder に入れると
                         狭い画面で見切れて何を入れる欄か分からなくなる */}
                     <label className="dot-add-label" htmlFor="palette-add">
-                        パレットに文字を追加
+                        パレットに新しい文字を追加
                     </label>
                     <input
                         id="palette-add"
                         className="dot-add-input"
                         value={charInput}
                         onChange={(e) => setCharInput(e.target.value)}
-                        placeholder="文字や文章を貼り付け"
+                        placeholder="文字を入力して「追加」を押す（文章でも可）"
                     />
                     <div className="dot-add-actions">
                         <button className="bulk-btn" onClick={handleAddChars}>追加</button>
+                        <button className="bulk-btn" onClick={() => setShowSuggest((v) => !v)}>
+                            {showSuggest ? '候補を閉じる' : '候補から選ぶ'}
+                        </button>
                         {customPalette.length > 0 && (
                             <button
                                 className="bulk-btn"
@@ -208,7 +238,27 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                             </button>
                         )}
                     </div>
+                    {showSuggest && (
+                        <div className="dot-palette dot-suggest">
+                            {suggestions.map((ch) => (
+                                <button
+                                    key={ch}
+                                    className="dot-palette-btn"
+                                    onClick={() => {
+                                        addPaletteChars(ch);
+                                        showToast(`${ch} を追加しました`);
+                                    }}
+                                >
+                                    {ch}
+                                </button>
+                            ))}
+                            {suggestions.length === 0 && (
+                                <span className="dot-suggest-empty">候補は全て追加済みです</span>
+                            )}
+                        </div>
+                    )}
                 </div>
+                )}
             </section>
 
             <section className="card-inputs">
@@ -226,7 +276,7 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                 >
                 <div
                     className="dot-grid"
-                    style={zoomed ? { width: '200%' } : undefined}
+                    style={{ width: zoomed ? '200%' : '100%' }}
                     onPointerDown={(e) => {
                         // キャプチャは解除しない。塗りは座標（elementFromPoint）で追うので
                         // キャプチャがあっても動き、あれば up/cancel が必ずこの要素へ届く。
