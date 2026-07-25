@@ -18,15 +18,10 @@ BM チェッカーと分けるのは、指標（コピー数・使われる作�
 3. ストリーム名: `AAメーカー（GitHub Pages）`。
 4. 作成すると **測定 ID**（`G-` で始まる 10 桁程度の文字列）が表示される。これを使う。
 
-## 3. ツールへ設定する
+## 3. ツールへ設定する（済）
 
-`index.html` の 2 箇所ある `G-XXXXXXXXXX` を、取得した測定 ID に置き換えるだけ。
-
-```html
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
-...
-gtag('config', 'G-XXXXXXXXXX', { send_page_view: false });
-```
+測定 ID は **G-VF12E12C4Q**（2026-07-25 設定済み）。`index.html` の 2 箇所に入っている。
+別プロパティへ移すときはこの 2 箇所を差し替える。
 
 `send_page_view: false` は意図的。SPA なのでビュー切替を自動計測できず、
 `src/utils/analytics.ts` の `trackView()` から手動で送っている。

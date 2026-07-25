@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { convert } from '../../core/convert';
 import { ConversionResult } from '../common/ConversionResult';
+import { HelpTooltip } from '../common/HelpTooltip';
 import { utf8ByteLength, MAX_MESSAGE_BYTES } from '../../core/metrics';
 import { trackCopy } from '../../utils/analytics';
 
@@ -39,15 +40,15 @@ export const AaConverterView = ({ input, setInput, onCopied }: AaConverterViewPr
     return (
         <div>
             <section className="card-inputs">
-                <div className="section-title">AAを貼り付け</div>
+                <div className="section-title">
+                    AAを貼り付け
+                    <HelpTooltip text="すでにあるAAを改行したまま貼り付けてください。ゲーム内で同じ形に見えるよう、見えない調整を自動で入れます。" />
+                </div>
                 <textarea
                     className="aa-input"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder={
-                        'ここに AA を貼り付け（改行したままで OK）\n' +
-                        'ゲーム内で同じ形に見えるよう自動で調整します'
-                    }
+                    placeholder="ここに AA を貼り付け"
                     rows={8}
                     spellCheck={false}
                 />

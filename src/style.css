@@ -94,6 +94,11 @@ body {
 
 /* Main Content */
 .main-content { padding: 20px 16px 80px; max-width: 600px; margin: 0 auto; }
+/* 狭い画面では左右の余白を削ってキャンバスの 1 マスを少しでも大きくする */
+@media (max-width: 480px) {
+    .main-content { padding: 16px 8px 80px; }
+    .card-inputs { padding: 16px 10px; }
+}
 
 .card-inputs {
     background: var(--white); border-radius: 12px; border: 2px solid var(--dark-border);
@@ -316,6 +321,8 @@ body {
     align-items: center;
     justify-content: center;
     background: var(--white);
+    /* 色を明示しないと iOS ではシステム色（青）で描かれる */
+    color: var(--text-color);
     border: 2px solid var(--border-color);
     border-radius: 8px;
     cursor: pointer;
@@ -326,12 +333,20 @@ body {
     color: var(--primary-color);
     border-color: var(--dark-border);
 }
-.dot-add-row {
+.dot-add { margin-top: 12px; }
+.dot-add-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: var(--subdued-text);
+    margin-bottom: 6px;
+}
+.dot-add-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 12px;
-    align-items: center;
+    margin-top: 8px;
+    justify-content: flex-end;
 }
 .dot-hint {
     margin-top: 10px;
@@ -364,8 +379,7 @@ body {
     cursor: not-allowed;
 }
 .dot-add-input {
-    flex: 1;
-    min-width: 130px;
+    width: 100%;
     padding: 8px;
     border: 1px solid var(--border-color);
     border-radius: 6px;

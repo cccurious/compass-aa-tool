@@ -127,25 +127,33 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                         </button>
                     ))}
                 </div>
-                <div className="dot-add-row">
+                <div className="dot-add">
+                    {/* 説明はラベルとして常に見える位置に置く。placeholder に入れると
+                        狭い画面で見切れて何を入れる欄か分からなくなる */}
+                    <label className="dot-add-label" htmlFor="palette-add">
+                        パレットに文字を追加
+                    </label>
                     <input
+                        id="palette-add"
                         className="dot-add-input"
                         value={charInput}
                         onChange={(e) => setCharInput(e.target.value)}
-                        placeholder="使いたい文字を含む文章"
+                        placeholder="文字や文章を貼り付け"
                     />
-                    <button className="bulk-btn" onClick={handleAddChars}>パレットに追加</button>
-                    {customPalette.length > 0 && (
-                        <button
-                            className="bulk-btn"
-                            onClick={() => {
-                                clearCustom();
-                                setCategory(PALETTE_CATEGORIES[0].id);
-                            }}
-                        >
-                            追加分を消去（{customPalette.length}）
-                        </button>
-                    )}
+                    <div className="dot-add-actions">
+                        <button className="bulk-btn" onClick={handleAddChars}>追加</button>
+                        {customPalette.length > 0 && (
+                            <button
+                                className="bulk-btn"
+                                onClick={() => {
+                                    clearCustom();
+                                    setCategory(PALETTE_CATEGORIES[0].id);
+                                }}
+                            >
+                                追加分を消去（{customPalette.length}）
+                            </button>
+                        )}
+                    </div>
                 </div>
             </section>
 
