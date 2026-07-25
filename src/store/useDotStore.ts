@@ -19,7 +19,8 @@ export const PALETTE_CATEGORIES: PaletteCategory[] = [
   { id: 'tri', label: '三角', chars: [...'◤◥◣◢'] },
   // 1 マスを 2×2 の 4 ドットとして扱える＝実質解像度が 2 倍になる
   { id: 'quarter', label: '4分割', chars: [...'▘▝▖▗▚▞▛▜▙▟'] },
-  { id: 'line', label: '罫線', chars: [...'─│┌┐└┘├┤┬┴┼'] },
+  // 丸角（╭╮╰╯）は角ばった ┌┐└┘ の直後に置き、やわらかいカーブを描けるようにする
+  { id: 'line', label: '罫線', chars: [...'─│┌┐└┘╭╮╰╯├┤┬┴┼'] },
   { id: 'bold', label: '太線', chars: [...'━┃┏┓┗┛┣┫┳┻╋'] },
 ];
 

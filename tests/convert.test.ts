@@ -252,3 +252,19 @@ describe('ラウンド3で確定した実機の癖', () => {
         expect(convert('∞∠∩∪←↑★♦☂✓\nあ').unknownWidthLines).toEqual([]);
     });
 });
+
+describe('罫線パレット（丸角つき）', () => {
+    it('丸角 ╭╮╰╯ は幅 1.0 で警告も出ない', () => {
+        expect(textWidth('╭╮╰╯')).toBe(4.0);
+        expect(convert('╭─╮' + '\n' + '╰─╯').unknownWidthLines).toEqual([]);
+    });
+    it('丸角の枠がグリッドから崩れずに出力される', () => {
+        const grid = emptyGrid(2);
+        grid[0][0] = '╭'; grid[0][1] = '─'; grid[0][2] = '╮';
+        grid[1][0] = '╰'; grid[1][1] = '─'; grid[1][2] = '╯';
+        const text = gridToText(grid);
+        expect(text).toBe('╭─╮' + '\n' + '╰─╯');
+        const rendered = convert(text).preview.map((l) => l.text.replace(/[ 　]+$/, ''));
+        expect(rendered).toEqual(['╭─╮', '╰─╯']);
+    });
+});
