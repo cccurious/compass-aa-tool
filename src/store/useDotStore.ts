@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { DotGrid, emptyGrid, GRID_COLS } from '../core/grid';
 import { charWidth } from '../core/metrics';
-import { PRESET_PALETTE } from '../core/palette';
+import { PRESET_PALETTE, WITHDRAWN_CHARS } from '../core/palette';
 
 const INITIAL_ROWS = 8;
 
@@ -120,6 +120,11 @@ export const useDotStore = create<DotState>()(
                 const skipped: string[] = [];
                 for (const ch of Array.from(text)) {
                     if (existing.has(ch) || added.includes(ch)) continue;
+                    // 取り下げた文字は貼り付けからも入れさせない
+                    if (WITHDRAWN_CHARS.has(ch)) {
+                        if (!skipped.includes(ch)) skipped.push(ch);
+                        continue;
+                    }
                     // 全角幅 1.0 の文字だけがグリッドのマス目に乗る（半角は形が崩れる）
                     if (charWidth(ch) !== 1.0) {
                         if (!skipped.includes(ch)) skipped.push(ch);
@@ -170,6 +175,19 @@ export const useDotStore = create<DotState>()(
             // パレット関連だけ保存する。描きかけのグリッドは保存しない
             // （次に開いたとき前回の絵が残っていると驚くため）
             partialize: (s) => ({ recentChars: s.recentChars, customPalette: s.customPalette }),
+            // 取り下げた文字（端末で見え方が変わるもの）は保存済みの分からも消す。
+            // 消さないと「最近使った」に残り続けて再び使われてしまう
+            merge: (persisted, current) => {
+                const p = (persisted ?? {}) as Partial<DotState>;
+                const clean = (xs?: string[]) => (xs ?? []).filter((c) => !WITHDRAWN_CHARS.has(c));
+                return {
+                    ...current,
+                    ...p,
+                    recentChars: clean(p.recentChars),
+                    customPalette: clean(p.customPalette),
+                    brush: p.brush && WITHDRAWN_CHARS.has(p.brush) ? '█' : current.brush,
+                };
+            },
         },
     ),
 );

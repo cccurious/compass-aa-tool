@@ -1,7 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { charWidth, isKnownWidth, classifyChar, textWidth } from '../src/core/metrics';
 import { messageCost, isOverLimit, BREAK_SPACE_COST } from '../src/core/limit';
-import { PALETTE_CATEGORIES, SUGGEST_CHARS } from '../src/core/palette';
+import {
+    PALETTE_CATEGORIES,
+    PRESET_PALETTE,
+    SUGGEST_CHARS,
+    WITHDRAWN_CHARS,
+} from '../src/core/palette';
 
 /**
  * 実機の実測値そのものの回帰テスト。再校正（ゲーム更新で幅が変わったとき）は
@@ -49,7 +54,7 @@ describe('実機校正済みの 3 層モデル', () => {
     });
     it('罫線・ブロック・幾何学図形は範囲ごと 1.0 実測済み', () => {
         expect(textWidth('┏┓┃━')).toBe(4.0);
-        expect(textWidth('█▌░▒▓')).toBe(5.0);
+        expect(textWidth('█▌░▒')).toBe(4.0);
         expect(textWidth('■□●○')).toBe(4.0);
     });
     it('推定 0.5 だった約物・欧文記号は実機 1.0（一括検証 H/L）', () => {
@@ -154,6 +159,12 @@ describe('分類の内部整合（食い違いの門番）', () => {
 });
 
 describe('パレットの門番', () => {
+    it('取り下げた文字はプリセットにも候補にも残っていない', () => {
+        for (const ch of WITHDRAWN_CHARS) {
+            expect(PRESET_PALETTE.includes(ch), `プリセットに ${ch} が残っている`).toBe(false);
+            expect(SUGGEST_CHARS.includes(ch), `候補に ${ch} が残っている`).toBe(false);
+        }
+    });
     it('パレットの全文字が幅 1.0 かつ確認済み', () => {
         for (const c of PALETTE_CATEGORIES) {
             for (const ch of c.chars) {

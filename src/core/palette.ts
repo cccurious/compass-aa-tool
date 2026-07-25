@@ -21,8 +21,9 @@ export const PALETTE_CATEGORIES: PaletteCategory[] = [
         id: 'paint',
         label: '塗り',
         chars: [
-            // 濃淡 4 段と、余白のある四角（■□ は █ と違い点として使える）＋半分ブロック
-            ...'█▓▒░■□▀▄▌▐',
+            // 濃淡と、余白のある四角（■□ は █ と違い点として使える）＋半分ブロック。
+            // ▓(U+2593) は iPhone で半分の幅で表示されるため撤去（WITHDRAWN_CHARS 参照）
+            ...'█▒░■□▀▄▌▐',
             // セルの角から角まで塗るので斜線・カーブが隣と繋がる
             ...'◤◥◣◢',
             // 1 マスを 2×2 の 4 ドットとして扱える＝実質解像度が 2 倍になる
@@ -45,6 +46,16 @@ export const PALETTE_CATEGORIES: PaletteCategory[] = [
 
 /** 全プリセット文字（重複判定・門番テスト用） */
 export const PRESET_PALETTE = PALETTE_CATEGORIES.flatMap((c) => c.chars);
+
+/**
+ * 一度パレットに載せたが取り下げた文字（2026-07-26）。
+ * ユーザーの端末に保存済みの「最近使った」「追加分」からも消すため、
+ * ストアの読み込み時にこの集合で濾す。
+ *
+ * - `▓`(U+2593): iPhone では**半分の幅**で表示される（Android では全角幅）。
+ *   端末で見え方が変わるため AA が崩れる。実機報告 2026-07-26。
+ */
+export const WITHDRAWN_CHARS = new Set(Array.from('▓'));
 
 /**
  * 「候補から選ぶ」に出す文字。実機プローブで幅 1.0 の裏が取れている文字のうち、
