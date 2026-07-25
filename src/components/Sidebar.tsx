@@ -24,15 +24,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, isOpen, onViewCha
                         <span className="menu-link-sub">貼り付けたAAをチャット用に自動調整</span>
                     </button>
                 </li>
-                <li>
-                    <button className={`menu-link ${currentView === 'guide' ? 'active' : ''}`} onClick={() => onViewChange('guide')}>
-                        <span className="menu-link-main">使い方・注意</span>
-                        <span className="menu-link-sub">文字数の制限や使えない文字について</span>
-                    </button>
-                </li>
             </ul>
             <div className="menu-header" style={{ borderTop: '1px solid var(--border-color)' }}>その他</div>
             <ul>
+                <li>
+                    <button className={`menu-link ${currentView === 'guide' ? 'active' : ''}`} onClick={() => onViewChange('guide')}>
+                        使い方・注意
+                    </button>
+                </li>
                 <li><a href="https://cccurious.com" className="menu-link" style={{ fontWeight: 'bold' }}>トップページへ戻る</a></li>
                 <li><a href="https://x.com/o_0u0_b" className="menu-link" target="_blank" rel="noopener noreferrer">連絡先(X)</a></li>
             </ul>
