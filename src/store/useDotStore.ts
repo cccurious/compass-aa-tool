@@ -13,19 +13,34 @@ export interface PaletteCategory {
 }
 
 export const PALETTE_CATEGORIES: PaletteCategory[] = [
-  // 濃淡 4 段と、余白のある四角（■□ は █ と違い点として使える）
-  { id: 'block', label: 'ブロック', chars: [...'█▓▒░■□▀▄▌▐'] },
-  // セルの角から角まで塗るので斜線・カーブが隣と繋がる
-  { id: 'tri', label: '三角', chars: [...'◤◥◣◢'] },
-  // 1 マスを 2×2 の 4 ドットとして扱える＝実質解像度が 2 倍になる
-  { id: 'quarter', label: '4分割', chars: [...'▘▝▖▗▚▞▛▜▙▟'] },
-  // 丸角（╭╮╰╯）は角ばった ┌┐└┘ の直後に置き、やわらかいカーブを描けるようにする
-  { id: 'line', label: '罫線', chars: [...'─│┌┐└┘╭╮╰╯├┤┬┴┼'] },
-  { id: 'bold', label: '太線', chars: [...'━┃┏┓┗┛┣┫┳┻╋'] },
-  // 太線と細線を混ぜて描くときに接続部が繋がる字（片側だけ太い角・T字）
-  { id: 'mix', label: 'つなぎ', chars: [...'┍┑┕┙┎┒┖┚┝┥┰┸'] },
-  { id: 'double', label: '二重', chars: [...'═║╔╗╚╝╠╣╦╩╬'] },
+  {
+    id: 'paint',
+    label: '塗り',
+    chars: [
+      // 濃淡 4 段と、余白のある四角（■□ は █ と違い点として使える）＋半分ブロック
+      ...'█▓▒░■□▀▄▌▐',
+      // セルの角から角まで塗るので斜線・カーブが隣と繋がる
+      ...'◤◥◣◢',
+      // 1 マスを 2×2 の 4 ドットとして扱える＝実質解像度が 2 倍になる
+      ...'▘▝▖▗▚▞▛▜▙▟',
+    ],
+  },
+  {
+    id: 'line',
+    label: '罫線',
+    // 丸角（╭╮╰╯）は角ばった ┌┐└┘ の直後に置き、対応関係を分かりやすくする
+    chars: [...'─│┌┐└┘╭╮╰╯├┤┬┴┼', ...'━┃┏┓┗┛┣┫┳┻╋'],
+  },
+  {
+    id: 'special',
+    label: '特殊線',
+    // 片側だけ太い角・T 字（太線と細線を混ぜたときの接続用）＋二重線
+    chars: [...'┍┑┕┙┎┒┖┚┝┥┰┸', ...'═║╔╗╚╝╠╣╦╩╬'],
+  },
 ];
+
+/** 「最近使った」に残す数（40px ボタンでスマホ 2 段に収まる上限） */
+export const MAX_RECENT = 12;
 
 /** 互換用（テスト・一括追加の重複判定に使う全プリセット文字） */
 export const PRESET_PALETTE = PALETTE_CATEGORIES.flatMap((c) => c.chars);
@@ -57,6 +72,8 @@ interface DotState {
   grid: DotGrid;
   /** ユーザーが追加した文字（プリセットとは別管理・まとめて消せる） */
   customPalette: string[];
+  /** 最近選んだ文字（新しい順・最大 MAX_RECENT） */
+  recentChars: string[];
   /** 選択中の文字。'' は消しゴム */
   brush: string;
   setBrush: (ch: string) => void;
@@ -78,9 +95,15 @@ const putCell = (grid: DotGrid, row: number, col: number, value: string): DotGri
 export const useDotStore = create<DotState>((set, get) => ({
   grid: emptyGrid(INITIAL_ROWS),
   customPalette: [],
+  recentChars: [],
   brush: '█',
   strokeErase: null,
-  setBrush: (ch) => set({ brush: ch }),
+  setBrush: (ch) =>
+    set((s) => {
+      // 既に入っている文字は並べ替えない（選ぶたびにボタンが動くと押し間違えるため）
+      if (ch === '' || s.recentChars.includes(ch)) return { brush: ch };
+      return { brush: ch, recentChars: [ch, ...s.recentChars].slice(0, MAX_RECENT) };
+    }),
 
   // 同じ文字のセルを塗ると消去になる（トグル）。判定はストローク開始時に
   // 一度だけ行い、ドラッグ中は同じモードを保つ（1 セルごとに反転すると

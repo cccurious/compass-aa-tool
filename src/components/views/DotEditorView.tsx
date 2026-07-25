@@ -15,7 +15,7 @@ interface DotEditorViewProps {
 
 export const DotEditorView = ({ onSendToConverter }: DotEditorViewProps) => {
     const {
-        grid, customPalette, brush, setBrush, beginStroke, paint, endStroke,
+        grid, customPalette, recentChars, brush, setBrush, beginStroke, paint, endStroke,
         addPaletteChars, clearCustom, addRow, removeRow, clearAll,
     } = useDotStore();
     const [charInput, setCharInput] = useState('');
@@ -23,8 +23,11 @@ export const DotEditorView = ({ onSendToConverter }: DotEditorViewProps) => {
     const [category, setCategory] = useState(PALETTE_CATEGORIES[0].id);
     const paintingRef = useRef(false);
 
-    // 追加した文字は専用カテゴリにまとめる（プリセットと混ざらないように）
+    // 最近使った文字を先頭に、追加した文字は専用カテゴリにまとめる
     const tabs = [
+        ...(recentChars.length > 0
+            ? [{ id: 'recent', label: '最近', chars: recentChars }]
+            : []),
         ...PALETTE_CATEGORIES,
         ...(customPalette.length > 0
             ? [{ id: 'custom', label: '追加分', chars: customPalette }]

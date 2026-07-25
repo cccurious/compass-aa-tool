@@ -218,10 +218,16 @@ body {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+    /* 文字が増えてもキャンバスを画面外へ押し出さないよう 3 段までで内部スクロール */
+    max-height: 138px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
 }
 .dot-palette-btn {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
+    flex: none;
     /* AA 描画と同じ書体系で統一（ブロック要素が OS 既定フォントだと痩せて見える） */
     font-family: "Noto Sans JP", "Yu Gothic", "MS Gothic", sans-serif;
     font-size: 1.35rem;
