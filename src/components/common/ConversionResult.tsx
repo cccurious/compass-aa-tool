@@ -1,5 +1,5 @@
 import { ConvertResult } from '../../core/convert';
-import { LINE_LIMIT, MAX_MESSAGE_CHARS, charWidth } from '../../core/metrics';
+import { LINE_LIMIT, MAX_MESSAGE_BYTES, charWidth, utf8ByteLength } from '../../core/metrics';
 
 /**
  * 幅テーブル駆動の 1 行レンダリング。
@@ -26,7 +26,11 @@ interface ConversionResultProps {
 
 /** プレビュー・警告・文字数カウンタ・コピーボタン（貼り付け／ドット打ち共通） */
 export const ConversionResult = ({ result, onCopy, title }: ConversionResultProps) => {
-    const outLen = Array.from(result.output).length;
+    // 実機の上限は文字数ではなく UTF-8 バイト（全角 3・半角 1）
+    const bytes = utf8ByteLength(result.output);
+    const over = bytes > MAX_MESSAGE_BYTES;
+    // 残量は「全角であと何文字置けるか」で示す（利用者の感覚に近い）
+    const remainCells = Math.floor((MAX_MESSAGE_BYTES - bytes) / 3);
     return (
         <>
             <section className="card-inputs">
@@ -82,9 +86,10 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
                 )}
             </section>
 
-            <div className={`char-count ${outLen > MAX_MESSAGE_CHARS ? 'over' : ''}`}>
-                {outLen} / {MAX_MESSAGE_CHARS} 文字
-                {outLen > MAX_MESSAGE_CHARS && ' — 上限超過。行数を減らすか行を短くしてください'}
+            <div className={`char-count ${over ? 'over' : ''}`}>
+                {over
+                    ? `上限超過（${bytes} / ${MAX_MESSAGE_BYTES}）— 全角 ${Math.ceil((bytes - MAX_MESSAGE_BYTES) / 3)} 文字ぶん減らしてください`
+                    : `残り 全角 ${remainCells} 文字ぶん（${bytes} / ${MAX_MESSAGE_BYTES}）`}
             </div>
             <button className="primary-btn" onClick={onCopy}>
                 変換テキストをコピー

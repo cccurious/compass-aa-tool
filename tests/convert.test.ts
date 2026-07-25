@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { gridToText, emptyGrid, GRID_COLS } from '../src/core/grid';
-import { textWidth, MAX_MESSAGE_CHARS } from '../src/core/metrics';
+import { textWidth, MAX_MESSAGE_BYTES, utf8ByteLength } from '../src/core/metrics';
 import { MAX_ROWS } from '../src/store/useDotStore';
 import { simulateWrap } from '../src/core/wrap';
 import { convert } from '../src/core/convert';
@@ -198,7 +198,7 @@ describe('行数上限（キャンバス設計の根拠・2026-07-25 実測）',
         let max = 0;
         for (let rows = 1; rows <= 20; rows++) {
             const src = Array.from({ length: rows }, () => '█'.repeat(width)).join('\n');
-            if (Array.from(convert(src).output).length <= MAX_MESSAGE_CHARS) max = rows;
+            if (utf8ByteLength(convert(src).output) <= MAX_MESSAGE_BYTES) max = rows;
         }
         return max;
     };
