@@ -93,6 +93,15 @@ const FALLBACK_RANGES: [number, number][] = [
 /** 実機で 1.0 動作を確認済みのフォールバック文字（isKnownWidth も true にする） */
 const FALLBACK_VERIFIED = new Set(['⌒', '´']);
 
+/**
+ * 実機で 1.0 動作を範囲ごと確認済みのフォールバック領域。
+ * 罫線・ブロック要素: 2026-07-25 あ×13+┏┓┳┃┗┻┛━ プローブで
+ * 「7 個目まで 1 行・8 個目の ━ だけ折り返し」＝全て 1.0 と確定
+ */
+const FALLBACK_VERIFIED_RANGES: [number, number][] = [
+  [0x2500, 0x257f], // 罫線素片
+];
+
 const inRanges = (cp: number, ranges: [number, number][]) =>
   ranges.some(([lo, hi]) => cp >= lo && cp <= hi);
 
@@ -119,6 +128,7 @@ export function charWidth(ch: string): number {
 export function isKnownWidth(ch: string): boolean {
   if (DEVICE_OVERRIDES[ch] !== undefined || FALLBACK_VERIFIED.has(ch)) return true;
   const cp = ch.codePointAt(0)!;
+  if (inRanges(cp, FALLBACK_VERIFIED_RANGES)) return true;
   if (inRanges(cp, HALF_RANGES)) return BIZ_WIDTHS[ch] !== undefined || !BIZ_MISSING.has(ch);
   if (ch === '　') return true;
   if (FULLWIDTH_RE.test(ch)) return true;

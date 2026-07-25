@@ -22,6 +22,10 @@ describe('metrics.textWidth（実機校正済み 3 層モデル）', () => {
     it('_ は ASCII だがアトラス漏れで固定 0.5（R7 実測。BIZ 0.311 不採用）', () => {
         expect(textWidth('_')).toBe(0.5);
     });
+    it('罫線ブロックは幅 1.0 で実測済み（警告を出さない）', () => {
+        expect(textWidth('┏┓┃━')).toBe(4.0);
+        expect(convert('┏━┓\n┗━┛').unknownWidthLines).toEqual([]);
+    });
     it('R8 実測の記号は DEVICE_OVERRIDES が BIZ 値に優先する', () => {
         expect(textWidth('|')).toBe(0.29);
         expect(textWidth('=')).toBe(0.54);
