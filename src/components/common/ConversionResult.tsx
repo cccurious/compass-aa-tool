@@ -1,6 +1,7 @@
 import { ConvertResult } from '../../core/convert';
 import { LINE_LIMIT, charWidth } from '../../core/metrics';
 import {
+    LIMIT_CHARS,
     LIMIT_WIDTH,
     isOverLimit,
     messageCost,
@@ -34,16 +35,21 @@ interface ConversionResultProps {
 
 /** プレビュー・警告・文字数カウンタ・コピーボタン（貼り付け／ドット打ち共通） */
 export const ConversionResult = ({ result, onCopy, title }: ConversionResultProps) => {
-    // 実機の上限は 2 本立て（core/limit.ts の v5 モデル）:
-    //   A: 長さ 196（改行を起こす半角スペースだけ 6.75）／ B: 幅換算 184（半角 0.5）
+    // 実機の上限は 3 本立て（core/limit.ts の v6 モデル）:
+    //   A: 長さ 196（改行を起こす半角スペースだけ 6.75）／ B: 幅換算 184 ／ C: 文字数 196
     const cost = messageCost(result.output);
     const over = isOverLimit(cost);
     const remain = remainingFullWidth(cost);
-    // 超過の主因が改行スペースのときは内訳を添える（何を減らすべきか示す）
-    const spaceHint =
-        over && cost.breakSpaces > 0
-            ? `（行の折り返し ${cost.breakSpaces} か所が 1 か所で全角 6 文字ぶんを消費）`
-            : '';
+    // 超過時は「どの上限に当たったか」を添える（何を減らせばよいか分かるように）
+    const overHint = !over
+        ? ''
+        : cost.chars > LIMIT_CHARS
+          ? `（文字数 ${cost.chars} / ${LIMIT_CHARS}）`
+          : cost.width > LIMIT_WIDTH
+            ? `（幅換算 ${cost.width} / ${LIMIT_WIDTH}）`
+            : cost.breakSpaces > 0
+              ? `（行の折り返し ${cost.breakSpaces} か所で全角 ${cost.breakSpaces * 6} 文字ぶんを消費）`
+              : '';
     return (
         <>
             <section className="card-inputs">
@@ -105,10 +111,10 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
 
             <div className={`char-count ${over ? 'over' : ''}`}>
                 {over
-                    ? `上限超過 — 全角 ${overBy(cost)} 文字ぶん減らしてください${spaceHint}`
+                    ? `上限超過 — 全角 ${overBy(cost)} 文字ぶん減らしてください${overHint}`
                     : `残り 全角 ${remain} 文字ぶん（幅換算 ${cost.width} / ${LIMIT_WIDTH}）`}
                 <HelpTooltip
-                    text={`ゲーム側の上限は「全角換算 ${LIMIT_WIDTH} 文字ぶん」と「長さ 196 文字ぶん」の 2 つで、どちらかを超えると送信時に末尾が切り捨てられます。長さの方は、行の折り返しが 1 回起きるたびに全角 6 文字ぶん余分にかかります（＝行数が多いほど早く上限に届きます）。カウンタの残りは厳しい方の値です。`}
+                    text={`ゲーム側の上限は 3 つあります。①全角換算 ${LIMIT_WIDTH} 文字ぶん ②文字数 196 字 ③長さ 196 文字ぶん（行の折り返しが 1 回起きるたびに全角 6 文字ぶん余分にかかります）。どれかを超えると送信時に末尾が切り捨てられます。カウンタの残りは一番厳しい上限の値です。`}
                 />
             </div>
             <button className="primary-btn" onClick={onCopy}>

@@ -35,8 +35,8 @@ export const GuideView = () => (
         <section className="card-inputs">
             <h3 className="section-title">知っておきたい制限</h3>
             {/* 「1 回に送れる長さの上限」の詳細説明は非表示（ユーザー判断・2026-07-25）。
-                上限の規則が複雑で説明しても混乱しやすいため、残量カウンタと
-                その ? ヘルプに任せる。規則自体は metrics.ts と calibration-plan.md 参照 */}
+                上限の規則が複雑（3 本立て）で説明しても混乱しやすいため、残量カウンタと
+                その ? ヘルプに任せる。規則自体は core/limit.ts と calibration-plan.md 参照 */}
             <dl className="guide-dl">
                 <dt>1 行に入るのは全角 20 文字まで</dt>
                 <dd>

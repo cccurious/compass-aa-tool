@@ -143,7 +143,12 @@ describe('convert: 全角充填パディング（units 再校正後の最優先�
         const result = convert(src);
         expect(result.output).not.toContain(' ');
         // 全角スペースは幅 1・長さ 0.75 の二面性を持つ（v5 モデル）
-        expect(messageCost(result.output)).toEqual({ length: 152, width: 175, breakSpaces: 0 });
+        expect(messageCost(result.output)).toEqual({
+            length: 152,
+            width: 175,
+            chars: 175,
+            breakSpaces: 0,
+        });
         expect(isOverLimit(messageCost(result.output))).toBe(false);
     });
 });

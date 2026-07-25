@@ -80,6 +80,19 @@ describe('送信上限モデル v5（2026-07-26・実機 23 本／切断位置�
     it('あ×176（UTF-8 528 バイト）は無傷 ＝ 旧 512 バイト説の反証', () => {
         expect(isOverLimit(messageCost('あ'.repeat(176)))).toBe(false);
     });
+    it('実測 S2: 文字数 196 の上限（長さ・幅に余裕があっても 197 字で切れる）', () => {
+        // 半角 100 + 全角 96 = 196 字（長さ 171・幅 146 で両方とも余裕がある）
+        const at = 'a'.repeat(100) + 'あ'.repeat(96);
+        expect(messageCost(at).chars).toBe(196);
+        expect(isOverLimit(messageCost(at))).toBe(false);
+        expect(isOverLimit(messageCost(at + 'あ'))).toBe(true);
+    });
+    it('実測 S1/S5: 改行を多く含む構成でも長さ 196 以内なら無傷', () => {
+        const s1 =
+            Array.from({ length: 7 }, () => '０'.repeat(19)).join(' ') + ' ' + '０'.repeat(15);
+        expect(messageCost(s1).breakSpaces).toBe(7);
+        expect(isOverLimit(messageCost(s1))).toBe(false);
+    });
 });
 
 describe('分類の内部整合（食い違いの門番）', () => {

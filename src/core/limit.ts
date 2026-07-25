@@ -2,23 +2,26 @@ import { charWidth } from './metrics';
 import { spaceBreakIndices } from './wrap';
 
 /**
- * 1 メッセージの送信上限（2026-07-26 モデル v5・実機プローブ 23 本で決着）。
+ * 1 メッセージの送信上限（2026-07-26 モデル v6・実機プローブ 28 本で決着）。
  *
- * 上限は 2 本立てで、**どちらかを超えた分が入力欄の確定時に末尾から切り捨てられる**。
+ * 上限は **3 本立て**で、どれかを超えた分が入力欄の確定時に末尾から切り捨てられる。
  *
  * 上限 A「長さ」: 文字ごとの重み付き合計 ≤ LIMIT_LENGTH
- *   - 全角グリフ（幅 1.0 の文字）      = 1
+ *   - 全角グリフ（幅 1.0 の文字）          = 1
  *   - 半角文字・全角スペース・半角スペース = 0.75
- *   - **改行を発生させた半角スペース   = 6.75**（＝ 0.75 ＋ 改行 1 回ぶんの 6）
+ *   - **改行を発生させた半角スペース       = 6.75**（＝ 0.75 ＋ 改行 1 回ぶんの 6）
  * 上限 B「幅換算」: 全角 1・半角（スペース含む）0.5 の合計 ≤ LIMIT_WIDTH
+ * 上限 C「文字数」: 単純な文字数 ≤ LIMIT_CHARS
  *
- * 「改行したスペースだけが高い」のが要点。同じ 10 文字語の連なりでも、
+ * A の要点は「改行したスペースだけが高い」。同じ 10 文字語の連なりでも、
  * 2 語が 1 行に収まる（＝改行しない）W1 は無傷で、改行を伴う P9 は切られた。
- * 実測 23 本のうち 20 本は切断位置まで 1 文字も違わず再現し、残り 3 本も ±1 文字。
+ * C は「半角 a は 196 文字で入力が止まる」という初期からの観測の正体でもある
+ * （S2 プローブ: 221 字・長さ 196・幅 171 が**ちょうど 196 字**で切断された）。
  * 経緯と全データは docs/notes/calibration-plan.md、探索器は scripts/limit-rule-solver.ts。
  */
 export const LIMIT_LENGTH = 196;
 export const LIMIT_WIDTH = 184;
+export const LIMIT_CHARS = 196;
 
 /** 改行を起こした半角スペース 1 個ぶんの重み（内訳: 通常 0.75 ＋ 改行 6） */
 export const BREAK_SPACE_COST = 6.75;
@@ -30,6 +33,8 @@ export interface MessageCost {
     length: number;
     /** 上限 B に対する幅換算 */
     width: number;
+    /** 上限 C に対する単純な文字数 */
+    chars: number;
     /** 改行を起こした（＝ 6.75 換算になった）半角スペースの個数 */
     breakSpaces: number;
 }
@@ -53,16 +58,20 @@ export function messageCost(text: string): MessageCost {
         length += isFullGlyph ? 1 : LIGHT_COST;
         width += c !== ' ' && charWidth(c) >= 1.0 ? 1 : 0.5;
     });
-    return { length, width, breakSpaces };
+    return { length, width, chars: chars.length, breakSpaces };
 }
 
 export const isOverLimit = (cost: MessageCost): boolean =>
-    cost.length > LIMIT_LENGTH || cost.width > LIMIT_WIDTH;
+    cost.length > LIMIT_LENGTH || cost.width > LIMIT_WIDTH || cost.chars > LIMIT_CHARS;
 
-/** あと何文字ぶん置けるか（全角 1 文字を単位に、2 つの上限のうち厳しい方） */
+/** あと何文字ぶん置けるか（全角 1 文字を単位に、3 つの上限のうち厳しい方） */
 export const remainingFullWidth = (cost: MessageCost): number =>
-    Math.floor(Math.min(LIMIT_LENGTH - cost.length, LIMIT_WIDTH - cost.width));
+    Math.floor(
+        Math.min(LIMIT_LENGTH - cost.length, LIMIT_WIDTH - cost.width, LIMIT_CHARS - cost.chars),
+    );
 
 /** 超過ぶん（全角何文字ぶん減らせばよいか） */
 export const overBy = (cost: MessageCost): number =>
-    Math.ceil(Math.max(cost.length - LIMIT_LENGTH, cost.width - LIMIT_WIDTH));
+    Math.ceil(
+        Math.max(cost.length - LIMIT_LENGTH, cost.width - LIMIT_WIDTH, cost.chars - LIMIT_CHARS),
+    );
