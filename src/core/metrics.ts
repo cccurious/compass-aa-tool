@@ -32,6 +32,18 @@ export const LINE_LIMIT = (LIMIT_SAFE + LIMIT_FORCE) / 2;
  */
 export const MAX_MESSAGE_CHARS = 184;
 
+/**
+ * 実機プローブで直接測定した幅（最優先・フォント仮説より強い）。
+ * 2026-07-25 R5: ´ は 1 行に 10 個＋px ピッチ 24px で 1.0 確定
+ * （ゲームのアトラスに無くフォールバックが全角幅）。j は 1 行に 27 個＋
+ * px ピッチ 9.4px で 0.39（BIZ UDPGothic の 0.388 と一致 → 欧文は BIZ 系が濃厚）。
+ * 全角スペースは R2/R3 のインデント px 測定で 1.0 確定。
+ */
+const DEVICE_OVERRIDES: Record<string, number> = {
+  '´': 1.0,
+  j: 0.39,
+};
+
 /** Noto Sans JP で幅 1.0 でない文字の例外マップ（全角=1.0 単位） */
 const EXCEPTIONS: Record<string, number> = noto.widths;
 
@@ -73,6 +85,8 @@ const FULLWIDTH_RE =
 
 /** 1 文字の幅（全角=1.0 単位）。実測できていない文字は 0.5 の粗い近似 */
 export function charWidth(ch: string): number {
+  const d = DEVICE_OVERRIDES[ch];
+  if (d !== undefined) return d;
   const w = EXCEPTIONS[ch];
   if (w !== undefined) return w;
   if (ch === '　') return 1.0;

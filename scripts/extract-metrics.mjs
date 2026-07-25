@@ -6,7 +6,8 @@ import { readdirSync } from 'node:fs';
 import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-const FILES_DIR = 'node_modules/@fontsource/noto-sans-jp/files';
+const PKG = process.argv[2] ?? 'biz-udpgothic';
+const FILES_DIR = `node_modules/@fontsource/${PKG}/files`;
 const WEIGHT = '400';
 
 // 対象文字集合: AA・スペーサー候補に関係する範囲
@@ -77,7 +78,7 @@ for (const cp of [...targets].sort((a, b) => a - b)) {
 }
 
 const out = {
-  font: `Noto Sans JP ${WEIGHT} (fontsource ${fontFiles.length} subsets)`,
+  font: `${PKG} ${WEIGHT} (fontsource ${fontFiles.length} subsets)`,
   note: '幅は全角(あ)=1.0 単位。widths に無いが ranges 内かつ missing 外の文字は 1.0 実測。missing はグリフ欠落＝フォールバック要注意',
   baseEm: base,
   ranges: RANGES,
@@ -85,7 +86,7 @@ const out = {
   widths,
   missing,
 };
-writeFileSync('src/core/noto-widths.json', JSON.stringify(out, null, 1));
+writeFileSync('src/core/font-widths.json', JSON.stringify(out, null, 1));
 console.log(
   `written: ${Object.keys(widths).length} exceptions, ${missing.length} missing`,
 );
