@@ -33,6 +33,9 @@ interface ConversionResultProps {
     title?: string;
 }
 
+/** 表示幅は実測値の合計なので端数が出る。表示は小数第 1 位まで */
+const round1 = (n: number) => Math.round(n * 10) / 10;
+
 /** プレビュー・警告・文字数カウンタ・コピーボタン（貼り付け／ドット打ち共通） */
 export const ConversionResult = ({ result, onCopy, title }: ConversionResultProps) => {
     // 実機の上限は 3 本立て（core/limit.ts の v6 モデル）:
@@ -46,7 +49,7 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
         : cost.chars > LIMIT_CHARS
           ? `（文字数 ${cost.chars} / ${LIMIT_CHARS}）`
           : cost.width > LIMIT_WIDTH
-            ? `（幅換算 ${cost.width} / ${LIMIT_WIDTH}）`
+            ? `（表示幅 ${round1(cost.width)} / ${LIMIT_WIDTH}）`
             : cost.breakSpaces > 0
               ? `（行の折り返し ${cost.breakSpaces} か所で全角 ${cost.breakSpaces * 6} 文字ぶんを消費）`
               : '';
@@ -112,7 +115,7 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
             <div className={`char-count ${over ? 'over' : ''}`}>
                 {over
                     ? `上限超過 — 全角 ${overBy(cost)} 文字ぶん減らしてください${overHint}`
-                    : `残り 全角 ${remain} 文字ぶん（幅換算 ${cost.width} / ${LIMIT_WIDTH}）`}
+                    : `残り 全角 ${remain} 文字ぶん（表示幅 ${round1(cost.width)} / ${LIMIT_WIDTH}）`}
                 <HelpTooltip
                     text={`ゲーム側の上限は 3 つあります。①全角換算 ${LIMIT_WIDTH} 文字ぶん ②文字数 196 字 ③長さ 196 文字ぶん（行の折り返しが 1 回起きるたびに全角 6 文字ぶん余分にかかります）。どれかを超えると送信時に末尾が切り捨てられます。カウンタの残りは一番厳しい上限の値です。`}
                 />
