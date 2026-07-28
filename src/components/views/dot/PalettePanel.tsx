@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useDotStore } from '../../../store/useDotStore';
-import { PALETTE_CATEGORIES, PRESET_PALETTE, SUGGEST_CHARS } from '../../../core/palette';
+import { PALETTE_CATEGORIES, PRESET_PALETTE, SUGGEST_GROUPS } from '../../../core/palette';
 import { HelpTooltip } from '../../common/HelpTooltip';
 import { trackPaletteAdd } from '../../../utils/analytics';
 
@@ -26,12 +26,16 @@ export const PalettePanel = ({ showToast }: PalettePanelProps) => {
     ];
     const shown = tabs.find((t) => t.id === category) ?? tabs[0];
 
-    // 追加候補: ゲーム内での幅 1.0 が確認済みで、まだパレットに無い文字
-    const suggestions = useMemo(
+    // 追加候補: ゲーム内での幅 1.0 が確認済みで、まだパレットに無い文字。
+    // 見出しつきのグループのまま出す（1 枚の壁だと目当ての文字を探せない）
+    const suggestGroups = useMemo(
         () =>
-            SUGGEST_CHARS.filter(
-                (ch) => !PRESET_PALETTE.includes(ch) && !customPalette.includes(ch),
-            ),
+            SUGGEST_GROUPS.map((g) => ({
+                ...g,
+                chars: g.chars.filter(
+                    (ch) => !PRESET_PALETTE.includes(ch) && !customPalette.includes(ch),
+                ),
+            })).filter((g) => g.chars.length > 0),
         [customPalette],
     );
 
@@ -115,20 +119,27 @@ export const PalettePanel = ({ showToast }: PalettePanelProps) => {
                         )}
                     </div>
                     {showSuggest && (
-                        <div className="dot-palette dot-suggest">
-                            {suggestions.map((ch) => (
-                                <button
-                                    key={ch}
-                                    className="dot-palette-btn"
-                                    onClick={() => {
-                                        addPaletteChars(ch);
-                                        showToast(`${ch} を追加しました`);
-                                    }}
-                                >
-                                    {ch}
-                                </button>
+                        <div className="dot-suggest-groups">
+                            {suggestGroups.map((g) => (
+                                <div key={g.label}>
+                                    <div className="dot-suggest-head">{g.label}</div>
+                                    <div className="dot-palette dot-suggest">
+                                        {g.chars.map((ch) => (
+                                            <button
+                                                key={ch}
+                                                className="dot-palette-btn"
+                                                onClick={() => {
+                                                    addPaletteChars(ch);
+                                                    showToast(`${ch} を追加しました`);
+                                                }}
+                                            >
+                                                {ch}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                             ))}
-                            {suggestions.length === 0 && (
+                            {suggestGroups.length === 0 && (
                                 <span className="dot-suggest-empty">候補は全て追加済みです</span>
                             )}
                         </div>

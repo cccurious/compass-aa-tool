@@ -359,7 +359,13 @@ body {
     color: var(--subdued-text);
     margin-bottom: 6px;
 }
-.dot-suggest { margin-top: 10px; }
+.dot-suggest { margin-top: 4px; }
+/* 候補のグループ見出し。ボタンの壁の中で迷子にならないための道しるべ */
+.dot-suggest-groups { margin-top: 10px; }
+.dot-suggest-head {
+    margin-top: 10px; font-size: 0.72rem; font-weight: 700; color: var(--subdued-text);
+    border-left: 3px solid var(--border-color); padding-left: 6px;
+}
 .dot-suggest-empty {
     font-size: 0.8rem;
     color: var(--subdued-text);

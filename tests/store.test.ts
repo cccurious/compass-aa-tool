@@ -23,8 +23,9 @@ describe('パレット追加（新規優先の押し出し）', () => {
         expect(pal.slice(-3)).toEqual(chars.slice(MAX_CUSTOM_CHARS));
     });
     it('半角は除外され、押し出しは起きない', () => {
-        const r = useDotStore.getState().addPaletteChars('abc●');
-        expect(r.added).toEqual(['●']);
+        // ● はプリセット「図形」へ昇格したので、候補に残っている ★ を使う
+        const r = useDotStore.getState().addPaletteChars('abc★');
+        expect(r.added).toEqual(['★']);
         expect(r.skipped).toEqual(['a', 'b', 'c']);
         expect(r.evicted).toHaveLength(0);
     });

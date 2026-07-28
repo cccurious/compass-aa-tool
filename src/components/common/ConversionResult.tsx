@@ -111,7 +111,7 @@ export const ConversionResult = ({
                     return (
                         <div className={`verdict-note ${v.cls}`}>
                             {v.icon} {v.text}
-                            <HelpTooltip text="このチェックは、開発している私の手元の iPhone と Android で調べた結果にもとづいています。機種やメーカーによってフォントが違うことがあるため、すべての端末で同じに見えることまでは分かりません。くわしくは「使い方・注意」をご覧ください。" />
+                            <HelpTooltip text="このチェックは崩れにくさの目安です。機種やメーカーによってフォントが違うことがあるため、すべての端末で同じに見えることまでは分かりません。くわしくは「使い方・注意」をご覧ください。" />
                         </div>
                     );
                 })()}
