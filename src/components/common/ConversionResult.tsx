@@ -113,13 +113,24 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
                         少し短くすると安全です。
                     </div>
                 )}
+                {result.unknownRiskLines.length > 0 && (
+                    <div className="warn-note">
+                        ⚠️ 端末によって幅が違う疑いのある文字が含まれています（
+                        {result.unknownRiskLines
+                            .map((u) => `${u.line + 1}行目: ${u.chars.join(' ')}`)
+                            .join(' ／ ')}
+                        ）。実機での確認は取れていませんが、フォントの調査では iOS と Android
+                        で違う幅になる兆候が出ており、形が崩れる可能性が高めです。
+                    </div>
+                )}
                 {result.unknownWidthLines.length > 0 && (
                     <div className="warn-note">
                         ⚠️ ゲーム内での幅が未確認の文字が含まれています（
                         {result.unknownWidthLines
                             .map((u) => `${u.line + 1}行目: ${u.chars.join(' ')}`)
                             .join(' ／ ')}
-                        ）。形が崩れるかもしれません。
+                        ）。端末差の兆候は出ていませんが、実機では未確認のため
+                        形が崩れる可能性があります。
                     </div>
                 )}
                 {result.leadingSpaceLines.length > 0 && (

@@ -9,6 +9,7 @@ import {
     UNUSABLE_CHARS,
     FILTERED_SEQUENCES,
     UNSAFE_DISPLAY_CHARS,
+    DEVICE_RISK_CHARS,
 } from './metrics';
 import { simulateWrap, SimLine } from './wrap';
 
@@ -48,6 +49,11 @@ export interface ConvertResult {
      * 行の途中が次行へ落ちる（2026-07-25 ⌒ 未収載時に実機で発生）
      */
     unknownWidthLines: { line: number; chars: string[] }[];
+    /**
+     * 幅未確認のうち、層 2 の予測（Noto 直読み＋iOS ブラウザ走査）で
+     * 「全角で出ない」と出た文字。未確認の中でも崩れる可能性が高い
+     */
+    unknownRiskLines: { line: number; chars: string[] }[];
     /** 実機で消えるため取り除いた文字（行番号つき） */
     removedLines: { line: number; chars: string[] }[];
     /** 隣接すると別の文字に置換される並びを含む行 */
@@ -76,6 +82,7 @@ export function convert(input: string): ConvertResult {
     const overflowLines: number[] = [];
     const leadingSpaceLines: number[] = [];
     const unknownWidthLines: { line: number; chars: string[] }[] = [];
+    const unknownRiskLines: { line: number; chars: string[] }[] = [];
     const removedLines: { line: number; chars: string[] }[] = [];
     const filteredSequenceLines: { line: number; sequences: string[] }[] = [];
     const deviceVariantLines: { line: number; chars: string[] }[] = [];
@@ -113,7 +120,11 @@ export function convert(input: string): ConvertResult {
                 Array.from(src).filter((c) => !isKnownWidth(c) && !UNSAFE_DISPLAY_CHARS.has(c)),
             ),
         ];
-        if (unknown.length > 0) unknownWidthLines.push({ line: i, chars: unknown });
+        // unknown はマージン計算（TAIL_UNKNOWN 等）用に全量を保ち、報告だけ二分する
+        const unknownRisk = unknown.filter((ch) => DEVICE_RISK_CHARS.has(ch));
+        const unknownMild = unknown.filter((ch) => !DEVICE_RISK_CHARS.has(ch));
+        if (unknownRisk.length > 0) unknownRiskLines.push({ line: i, chars: unknownRisk });
+        if (unknownMild.length > 0) unknownWidthLines.push({ line: i, chars: unknownMild });
         const contentW = textWidth(src);
         if (contentW > LIMIT_SAFE) overflowLines.push(i);
         // 端末差の余裕を見ても行に収まるか。半角が多くて幅が上限に近い行は、
@@ -232,6 +243,7 @@ export function convert(input: string): ConvertResult {
         overflowLines,
         leadingSpaceLines,
         unknownWidthLines,
+        unknownRiskLines,
         removedLines,
         filteredSequenceLines,
         deviceVariantLines,

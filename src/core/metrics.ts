@@ -11,6 +11,7 @@
  * 数値の由来は docs/notes/calibration-plan.md。実測確定値は DEVICE_OVERRIDES が最優先。
  */
 import biz from './font-widths.json';
+import deviceRisk from './device-risk.json';
 
 /** 折り返し・半角幅は実機校正済み。層 3（どの文字がアトラス漏れか）のみ逐次発見 */
 export const CALIBRATED = true;
@@ -56,6 +57,17 @@ export const MARGIN = {
      */
     HALF_DRIFT: 0.1,
 } as const;
+
+/**
+ * 端末差の**疑い**がある文字（確定ロジックの層 2・生成は scripts/gen-device-risk.mjs）。
+ *
+ * Android 予測（Noto Sans CJK ファイル直読み）と iOS 予測（実機ブラウザの
+ * 所属分類・calibrate-scan.html）のどちらかで全角 1.0 に出なかった 1754 文字。
+ * 確定値ではないので、この集合だけを理由に文字を弾いてはいけない。
+ * 幅が未確認の文字の警告文を「疑いあり／兆候なし」に分けるためだけに使う。
+ * 実測済みの文字（層 1）が混ざっていても、実測が優先されるので無害。
+ */
+export const DEVICE_RISK_CHARS = new Set(Array.from(deviceRisk.chars));
 
 /** UTF-8 でのバイト長（GA4 の計測用。上限判定には messageUnits を使う） */
 export function utf8ByteLength(text: string): number {
