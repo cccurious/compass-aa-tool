@@ -572,3 +572,8 @@ body {
     overflow: visible;
     vertical-align: bottom;
 }
+/* 問題のある文字の強調。警告と同じ深刻度の色分けで場所を直接見せる
+   （赤=崩れ確定・橙=端末差の疑い・黄=幅が未確認） */
+.chat-ch.ch-bad { background: #fecaca; box-shadow: 0 0 0 1px #ef4444 inset; border-radius: 3px; }
+.chat-ch.ch-risk { background: #fed7aa; border-radius: 3px; }
+.chat-ch.ch-unknown { background: #fef08a; border-radius: 3px; }

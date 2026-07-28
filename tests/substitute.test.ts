@@ -5,7 +5,7 @@ import {
     NO_SUBSTITUTE,
     substituteUnsafe,
 } from '../src/core/substitute';
-import { UNSAFE_DISPLAY_CHARS, charWidth, isKnownWidth } from '../src/core/metrics';
+import { UNSAFE_DISPLAY_CHARS, UNUSABLE_CHARS, charWidth, isKnownWidth } from '../src/core/metrics';
 
 const exactKeys = Object.keys(EXACT_SUBSTITUTIONS);
 const approxKeys = Object.keys(APPROX_SUBSTITUTIONS);
@@ -23,11 +23,16 @@ describe('置き換え表の門番', () => {
         expect(missing, `未分類: ${missing.join('')}`).toEqual([]);
     });
 
-    it('分類した文字は全て使用不可の文字である', () => {
+    it('分類した文字は全て使用不可か消える文字である', () => {
         const stray = [...exactKeys, ...approxKeys, ...NO_SUBSTITUTE].filter(
-            (c) => !UNSAFE_DISPLAY_CHARS.has(c),
+            (c) => !UNSAFE_DISPLAY_CHARS.has(c) && !UNUSABLE_CHARS.has(c),
         );
-        expect(stray, `使用不可でないのに載っている: ${stray.join('')}`).toEqual([]);
+        expect(stray, `対象外なのに載っている: ${stray.join('')}`).toEqual([]);
+    });
+
+    it('送信すると消える文字には全て置き換え先がある', () => {
+        const missing = [...UNUSABLE_CHARS].filter((c) => !(c in EXACT_SUBSTITUTIONS));
+        expect(missing).toEqual([]);
     });
 
     it('同じ文字が二重に分類されていない', () => {
@@ -53,6 +58,10 @@ describe('置き換え表の門番', () => {
 });
 
 describe('substituteUnsafe', () => {
+    it('消える文字をほぼ同形の文字に置き換える', () => {
+        expect(substituteUnsafe('⇑⇓✕').text).toBe('⇧⇩╳');
+    });
+
     it('二重罫線の枠を単線の枠にする（═ は救済済みなのでそのまま残る）', () => {
         expect(substituteUnsafe('╔═╦═╗').text).toBe('┌═┬═┐');
         expect(substituteUnsafe('╠═╬═╣').text).toBe('├═┼═┤');

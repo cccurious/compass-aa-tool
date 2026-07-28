@@ -1,5 +1,11 @@
 import { ConvertResult } from '../../core/convert';
-import { LINE_LIMIT, charWidth } from '../../core/metrics';
+import {
+    LINE_LIMIT,
+    charWidth,
+    isKnownWidth,
+    UNSAFE_DISPLAY_CHARS,
+    DEVICE_RISK_CHARS,
+} from '../../core/metrics';
 import {
     LIMIT_CHARS,
     LIMIT_WIDTH,
@@ -11,6 +17,16 @@ import {
 import { HelpTooltip } from './HelpTooltip';
 
 /**
+ * 警告と同じ深刻度でプレビュー上の文字に色を付ける。
+ * 「3 行目: ⌂」と言われても AA の中から探すのは大変なので、場所を直接見せる
+ */
+const charFlag = (ch: string): string => {
+    if (UNSAFE_DISPLAY_CHARS.has(ch)) return ' ch-bad';
+    if (!isKnownWidth(ch)) return DEVICE_RISK_CHARS.has(ch) ? ' ch-risk' : ' ch-unknown';
+    return '';
+};
+
+/**
  * 幅テーブル駆動の 1 行レンダリング。
  * 各文字を実機の実測幅のボックスに入れて並べるため、ブラウザ側のフォントが
  * 何であっても文字の累積位置＝実機表示と一致する（フォント差によるずれを排除）。
@@ -18,7 +34,11 @@ import { HelpTooltip } from './HelpTooltip';
 const ChatLine = ({ text }: { text: string }) => (
     <div className="chat-line">
         {Array.from(text).map((ch, i) => (
-            <span key={i} className="chat-ch" style={{ width: `${charWidth(ch)}em` }}>
+            <span
+                key={i}
+                className={`chat-ch${charFlag(ch)}`}
+                style={{ width: `${charWidth(ch)}em` }}
+            >
                 {ch}
             </span>
         ))}
@@ -128,7 +148,8 @@ export const ConversionResult = ({
                         {result.removedLines
                             .map((u) => `${u.line + 1}行目: ${u.chars.join(' ')}`)
                             .join(' ／ ')}
-                        ）。別の文字に置き換えてください。
+                        ）。
+                        {result.deviceVariantLines.length === 0 && substituteActions}
                     </div>
                 )}
                 {result.filteredSequenceLines.length > 0 && (
