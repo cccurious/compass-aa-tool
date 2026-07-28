@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>iOS フォント指紋照合 v2 | #AAメーカー</title>
+<style>
+    body {
+        margin: 0;
+        padding: 12px;
+        font-family: system-ui, sans-serif;
+        background: #f5f6f8;
+        color: #24292f;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+    .card {
+        background: #fff;
+        border: 1px solid #d0d7de;
+        border-radius: 8px;
+        padding: 14px;
+        margin-bottom: 12px;
+    }
+    h1 { font-size: 16px; margin: 0 0 6px; }
+    .sub { color: #57606a; font-size: 12px; }
+    .scroll { overflow-x: auto; }
+    table { border-collapse: collapse; font-size: 12px; white-space: nowrap; }
+    th, td { border: 1px solid #d0d7de; padding: 3px 6px; text-align: right; }
+    th { background: #f6f8fa; font-weight: normal; }
+    th.font-name { writing-mode: vertical-rl; text-align: left; max-height: 140px; }
+    td.ch { font-size: 16px; text-align: center; background: #f6f8fa; }
+    td.truth { background: #fff8c5; font-weight: bold; }
+    td.hit { background: #d1f0d6; color: #1a7f37; font-weight: bold; }
+    td.base-differ { color: #0969da; }
+    .copy-btn {
+        padding: 10px 18px;
+        border: none;
+        border-radius: 6px;
+        background: #0969da;
+        color: #fff;
+        font-size: 14px;
+    }
+    textarea { width: 100%; height: 90px; font-size: 11px; margin-top: 8px; }
+    #ranking li { margin: 2px 0; }
+</style>
+</head>
+<body>
+<div class="card">
+    <h1>iOS フォント指紋照合 v2</h1>
+    <p class="sub">
+        iOS の各システムフォントを<b>名指しで</b>測定し、ゲーム実機の確定幅（黄色の列）と
+        照合します。緑のセル ＝ ゲームと一致。どのフォントが緑で埋まるかで、ゲームの
+        フォールバック先を特定します。<b>iPhone の Safari で開いて</b>、
+        「結果をコピー」を送ってください（スクショなら表全体を横スクロールで分割撮影）。
+    </p>
+</div>
+<div class="card">
+    <div class="scroll"><table id="matrix"></table></div>
+</div>
+<div class="card">
+    <h2 style="font-size:14px;margin:0 0 6px;">一致数ランキング</h2>
+    <ol id="ranking"></ol>
+    <button class="copy-btn" id="copy">結果を JSON でコピー</button>
+    <textarea id="json" readonly></textarea>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    // ゲーム実機（iOS）で確定している幅。null はグリフ無し（幅 0・不可視）
+    var TRUTH = [
+        ['═', 0.7188], ['║', 0.7188], ['╔', 0.7188], ['╬', 0.7188],
+        ['░', 0.5], ['▒', 0.5], ['▓', 0.5], ['▀', 0.5], ['▐', 0.5],
+        ['↕', 0.5],
+        ['▣', 0.875], ['▤', 0.875],
+        ['∏', 0.742],
+        ['█', 1.0], ['▄', 1.0], ['─', 1.0], ['┼', 1.0], ['■', 1.0],
+        ['●', 1.0], ['◐', 1.0], ['⌒', 1.0], ['◤', 1.0],
+        ['▘', null], ['╌', null], ['╴', null]
+    ];
+
+    // iOS Safari から名指しできる候補フォント。
+    // baseline はカスケード任せ（v0.1 と同条件）＝「名指しの効果」の対照
+    var FONTS = [
+        ['baseline', '__none__, sans-serif'],
+        ['Hiragino Sans', '"Hiragino Sans"'],
+        ['Hiragino Mincho', '"Hiragino Mincho ProN"'],
+        ['PingFang SC', '"PingFang SC"'],
+        ['PingFang TC', '"PingFang TC"'],
+        ['Apple SD Gothic', '"Apple SD Gothic Neo"'],
+        ['Apple Symbols', '"Apple Symbols"'],
+        ['Menlo', 'Menlo'],
+        ['Courier New', '"Courier New"'],
+        ['Helvetica Neue', '"Helvetica Neue"'],
+        ['Times', '"Times New Roman"'],
+        ['STIX Two Text', '"STIX Two Text"'],
+        ['Songti SC', '"Songti SC"'],
+        ['Geneva', 'Geneva'],
+        ['Arial Unicode', '"Arial Unicode MS"'],
+        ['Zapf Dingbats', '"Zapf Dingbats"']
+    ];
+
+    var canvas = document.createElement('canvas');
+    var ctx = canvas.getContext('2d');
+    // 100px で描くので幅/100 がそのまま em 比。ゲームの k/64 と直接比較できる。
+    // （「あ」正規化をやめたのは、欧文フォント名指し時に あ がフォールバックして
+    //   基準がずれるため。CJK フォントの全角は 1.0 em なので割る必要がない）
+    function measure(ch, stack) {
+        ctx.font = '100px ' + stack;
+        return ctx.measureText(ch.repeat(10)).width / 1000;
+    }
+
+    var TOL = 0.02;
+    var results = {};
+
+    function render() {
+        var html = '<tr><th>文字</th><th class="truth">ゲーム</th>';
+        FONTS.forEach(function (f) { html += '<th class="font-name">' + f[0] + '</th>'; });
+        html += '</tr>';
+        var hits = {};
+        FONTS.forEach(function (f) { hits[f[0]] = 0; results[f[0]] = {}; });
+        var baseVal = {};
+
+        TRUTH.forEach(function (row) {
+            var ch = row[0], truth = row[1];
+            html += '<tr><td class="ch">' + ch + '</td><td class="truth">' +
+                (truth === null ? '無し' : truth.toFixed(3)) + '</td>';
+            FONTS.forEach(function (f, fi) {
+                var v = measure(ch, f[1]);
+                results[f[0]][ch] = +v.toFixed(4);
+                if (fi === 0) baseVal[ch] = v;
+                var hit = truth !== null && Math.abs(v - truth) <= TOL;
+                if (hit) hits[f[0]]++;
+                // 青字 = baseline と違う値（名指しが効いてそのフォントの実測になっている）
+                var cls = hit ? 'hit' : (Math.abs(v - baseVal[ch]) > 0.005 ? 'base-differ' : '');
+                html += '<td class="' + cls + '">' + v.toFixed(3) + '</td>';
+            });
+            html += '</tr>';
+        });
+        document.getElementById('matrix').innerHTML = html;
+
+        var judged = TRUTH.filter(function (r) { return r[1] !== null; }).length;
+        var rank = FONTS.map(function (f) { return [f[0], hits[f[0]]]; })
+            .sort(function (a, b) { return b[1] - a[1]; });
+        document.getElementById('ranking').innerHTML = rank.map(function (r) {
+            return '<li><b>' + r[0] + '</b>: ' + r[1] + ' / ' + judged + '</li>';
+        }).join('');
+
+        document.getElementById('json').value = JSON.stringify({
+            v: 'calibrate-ios-v2', ua: navigator.userAgent, results: results
+        });
+    }
+
+    document.getElementById('copy').onclick = function () {
+        var ta = document.getElementById('json');
+        ta.select();
+        if (navigator.clipboard) navigator.clipboard.writeText(ta.value);
+        else document.execCommand('copy');
+        this.textContent = 'コピーしました';
+    };
+
+    render();
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(render);
+    }
+})();
+</script>
+</body>
+</html>
