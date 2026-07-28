@@ -237,6 +237,24 @@ body {
     padding: 10px 12px; margin-top: 12px; font-size: 0.78rem; line-height: 1.7; color: #1e40af;
 }
 
+/* 変換結果の総合判定バッジ。「問題なし」を明示するのが役目
+   （警告が出ないだけでは安心してよいのか分からないため） */
+.verdict-note {
+    border-radius: 4px; padding: 8px 12px; margin-top: 12px;
+    font-size: 0.82rem; font-weight: 600; display: flex; align-items: center; gap: 6px;
+}
+.verdict-note.ok { background: #ecfdf5; border-left: 3px solid #10b981; color: #065f46; }
+.verdict-note.caution { background: #fffbeb; border-left: 3px solid #f59e0b; color: #92400e; }
+.verdict-note.error { background: #fef2f2; border-left: 3px solid #ef4444; color: #991b1b; }
+
+/* 警告内の置き換えアクション（substitute.ts の UI） */
+.substitute-btn {
+    display: inline-block; margin-top: 6px; margin-right: 8px;
+    padding: 6px 12px; border: 1px solid #d97706; border-radius: 6px;
+    background: #fff; color: #92400e; font-size: 0.8rem; cursor: pointer;
+}
+.substitute-btn:active { background: #fef3c7; }
+
 /* ===============================
    AA 変換（入力欄・文字数カウンタ）
 =============================== */

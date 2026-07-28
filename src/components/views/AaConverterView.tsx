@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { convert } from '../../core/convert';
+import { substituteUnsafe } from '../../core/substitute';
 import { ConversionResult } from '../common/ConversionResult';
 import { HelpTooltip } from '../common/HelpTooltip';
 import { Toast } from '../common/Toast';
@@ -17,6 +18,23 @@ export const AaConverterView = ({ input, setInput, onCopied }: AaConverterViewPr
     const copyResult = useCopyResult('aa', showToast, onCopied);
 
     const result = useMemo(() => (input ? convert(input) : null), [input]);
+
+    // 置き換え候補の下見（ボタンを出すかどうかの判定に使う）。
+    // exact: 意味が保たれる置き換えだけ ／ full: 見た目が変わるものも含む
+    const exact = useMemo(() => substituteUnsafe(input, false), [input]);
+    const full = useMemo(() => substituteUnsafe(input, true), [input]);
+    const approxExtra = full.replaced.length - exact.replaced.length;
+
+    const applySubstitute = (approx: boolean) => {
+        const r = approx ? full : exact;
+        setInput(r.text);
+        showToast(
+            `${r.replaced.length} 種類の文字を置き換えました` +
+                (r.unresolved.length > 0
+                    ? `（${r.unresolved.join(' ')} は代わりがありません）`
+                    : ''),
+        );
+    };
 
     return (
         <div>
@@ -38,24 +56,49 @@ export const AaConverterView = ({ input, setInput, onCopied }: AaConverterViewPr
                         クリア
                     </button>
                 </div>
-                {/* 貼り付け AA はどんな文字でも来るため、実機確認が追いついていない
-                    文字が混ざりうる。条件つきの警告だけでは気づけないので、
-                    現状の精度をこの位置に常時出しておく（2026-07-26 ユーザー要望） */}
+                {/* 貼り付け AA はどんな文字でも来るため、判定の仕組みと保証の範囲を
+                    常時出しておく。「開発環境の実機で確認した」という事実ベースに留め、
+                    あらゆる端末での見え方は断言しない（2026-07-26 ユーザー方針） */}
                 <div className="notice-note">
-                    <b>変換精度について</b>
+                    <b>変換の考え方</b>
                     <br />
-                    iOS と Android では一部の文字が違う幅で表示されることが分かっており、
-                    まだ全ての文字を確認できていません。そのため貼り付けた AA によっては、
-                    実機での折り返し位置がプレビューとずれることがあります。
-                    確認できた文字から順次対応していきます。
+                    文字ごとに「開発環境の iPhone / Android の実機で表示を確認できたか」を
+                    判定し、確認できていない文字には段階に応じた警告を出します。 端末や OS
+                    のバージョンによってフォントが変わることがあるため、
+                    すべての環境での見え方までは保証できません。
                     <br />
-                    確実に同じ形で表示したい場合は、確認済みの文字だけを載せている
+                    崩したくない場合は、確認済みの文字だけを載せている
                     <b>ドット打ちエディタ</b>のご利用がおすすめです。
                 </div>
             </section>
 
             {result ? (
-                <ConversionResult result={result} onCopy={() => copyResult(result)} />
+                <ConversionResult
+                    result={result}
+                    onCopy={() => copyResult(result)}
+                    substituteActions={
+                        exact.replaced.length > 0 || approxExtra > 0 ? (
+                            <div>
+                                {exact.replaced.length > 0 && (
+                                    <button
+                                        className="substitute-btn"
+                                        onClick={() => applySubstitute(false)}
+                                    >
+                                        安全な文字に置き換える（{exact.replaced.length} 種類）
+                                    </button>
+                                )}
+                                {approxExtra > 0 && (
+                                    <button
+                                        className="substitute-btn"
+                                        onClick={() => applySubstitute(true)}
+                                    >
+                                        見た目が変わる置き換えも行う（＋{approxExtra} 種類）
+                                    </button>
+                                )}
+                            </div>
+                        ) : null
+                    }
+                />
             ) : (
                 <div className="empty-guide">
                     <p className="empty-guide-lead">

@@ -31,13 +31,58 @@ interface ConversionResultProps {
     onCopy: () => void;
     /** 見出し（既定「チャット表示プレビュー」） */
     title?: string;
+    /** 「正しく表示できない文字」警告の直下に出す操作（置き換えボタン等） */
+    substituteActions?: React.ReactNode;
 }
 
 /** 表示幅は実測値の合計なので端数が出る。表示は小数第 1 位まで */
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
+/**
+ * 変換結果の総合判定。警告が 1 つも出ないとき「問題なし」を明示するのが主目的
+ * （無言では、安心してよいのか判断材料が無いままコピーさせることになる）。
+ * 文言は「開発環境の実機で確認した」という事実ベースに留め、
+ * あらゆる端末での見え方は保証しない（フォントは端末・OS 版に依存するため）。
+ */
+const verdictOf = (result: ConvertResult) => {
+    const errors =
+        result.removedLines.length +
+        result.deviceVariantLines.length +
+        result.filteredSequenceLines.length +
+        result.overflowLines.length +
+        result.leadingSpaceLines.length;
+    if (errors > 0) {
+        return {
+            cls: 'error',
+            icon: '❌',
+            text: 'そのままでは崩れる箇所があります（下の警告を確認してください）',
+        };
+    }
+    const cautions =
+        result.unknownRiskLines.length +
+        result.unknownWidthLines.length +
+        result.deviceWrapRiskLines.length;
+    if (cautions > 0) {
+        return {
+            cls: 'caution',
+            icon: '⚠️',
+            text: '実機で未確認の文字が含まれています（下の警告を確認してください）',
+        };
+    }
+    return {
+        cls: 'ok',
+        icon: '✅',
+        text: '実機で表示を確認できた文字だけでできています',
+    };
+};
+
 /** プレビュー・警告・文字数カウンタ・コピーボタン（貼り付け／ドット打ち共通） */
-export const ConversionResult = ({ result, onCopy, title }: ConversionResultProps) => {
+export const ConversionResult = ({
+    result,
+    onCopy,
+    title,
+    substituteActions,
+}: ConversionResultProps) => {
     // 実機の上限は 3 本立て（core/limit.ts の v6 モデル）:
     //   A: 長さ 196（改行を起こす半角スペースだけ 6.75）／ B: 幅換算 184 ／ C: 文字数 196
     const cost = messageCost(result.output);
@@ -69,6 +114,17 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
                         ))}
                     </div>
                 </div>
+                {(() => {
+                    const v = verdictOf(result);
+                    return (
+                        <div className={`verdict-note ${v.cls}`}>
+                            {v.icon} {v.text}
+                            {v.cls === 'ok' && (
+                                <HelpTooltip text="開発環境の iPhone / Android の実機で 1 文字ずつ表示を確認した文字だけで構成されています。端末や OS のバージョンによってフォントが変わる可能性までは保証できませんが、既知の崩れる要因はありません。" />
+                            )}
+                        </div>
+                    );
+                })()}
                 {result.overflowLines.length > 0 && (
                     <div className="warn-note">
                         ⚠️ {result.overflowLines.map((n) => n + 1).join(', ')} 行目が 1 行の上限
@@ -103,6 +159,7 @@ export const ConversionResult = ({ result, onCopy, title }: ConversionResultProp
                         ）。半分の幅になる・表示されないなどの理由で形が崩れます。 iOS と Android
                         で結果が違うものもあるため、
                         自分の端末で正常に見えても相手の端末では崩れることがあります。
+                        {substituteActions}
                     </div>
                 )}
                 {result.deviceWrapRiskLines.length > 0 && (
