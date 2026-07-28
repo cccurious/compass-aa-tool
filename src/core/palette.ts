@@ -122,15 +122,16 @@ export const SUGGEST_GROUPS: { label: string; chars: string[] }[] = [
     {
         label: '矢印',
         // ↕ は iPhone で半分の幅になるため除外（UNSAFE_DISPLAY_CHARS）
-        chars: [...'←↑→↓↔↖↗↘↙⇒⇔⇐⇆⇄⇅⇦⇨'],
+        chars: [...'←↑→↓↔↖↗↘↙⇒⇔⇐⇆⇄⇅⇋⇌⇦⇨⇧⇩⇵➡'],
     },
     {
         label: '記号・飾り',
-        chars: [...'★☆♠♣♥♦♪♭♯♀♂☀☁☂☃☎☜☞✓・ω〜※〆〇々'],
+        // ☯ は iOS で幅が違うため入れない（UNSAFE_DISPLAY_CHARS）
+        chars: [...'★☆♠♣♥♦♡♢♤♧♪♭♯♩♬♮♀♂☀☁☂☃♨☎☖☗☜☞☝☟♻⚠⚽⚾✂✓〠〓〽〰・ω〜※〆〇々'],
     },
     {
         label: 'かっこ',
-        chars: [...'「」『』【】〈〉《》〝〟'],
+        chars: [...'「」『』【】〈〉《》〖〗〘〙〝〟'],
     },
     {
         label: '数学記号',

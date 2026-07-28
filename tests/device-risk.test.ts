@@ -9,12 +9,12 @@ import { DEVICE_RISK_CHARS, isKnownWidth } from '../src/core/metrics';
  */
 describe('端末差の疑いリスト', () => {
     // ⌂ は両スキャンとも非全角（iOS 0.60）・実測なし → 疑いあり側の代表
-    // ♨ は両スキャンとも全角に出た・実測なし → 兆候なし側の代表
+    // ♲ は両スキャンとも全角に出た・実測なし → 兆候なし側の代表
     it('前提: 代表文字の分類が生成データと一致している', () => {
         expect(isKnownWidth('⌂')).toBe(false);
         expect(DEVICE_RISK_CHARS.has('⌂')).toBe(true);
-        expect(isKnownWidth('♨')).toBe(false);
-        expect(DEVICE_RISK_CHARS.has('♨')).toBe(false);
+        expect(isKnownWidth('♲')).toBe(false);
+        expect(DEVICE_RISK_CHARS.has('♲')).toBe(false);
     });
 
     it('疑いのある未確認文字は unknownRiskLines に出る', () => {
@@ -24,15 +24,15 @@ describe('端末差の疑いリスト', () => {
     });
 
     it('兆候のない未確認文字は unknownWidthLines に出る', () => {
-        const r = convert('♨あ\nあ');
-        expect(r.unknownWidthLines).toEqual([{ line: 0, chars: ['♨'] }]);
+        const r = convert('♲あ\nあ');
+        expect(r.unknownWidthLines).toEqual([{ line: 0, chars: ['♲'] }]);
         expect(r.unknownRiskLines).toEqual([]);
     });
 
     it('同じ行に混在したら両方の警告に振り分けられる', () => {
-        const r = convert('⌂♨\nあ');
+        const r = convert('⌂♲\nあ');
         expect(r.unknownRiskLines).toEqual([{ line: 0, chars: ['⌂'] }]);
-        expect(r.unknownWidthLines).toEqual([{ line: 0, chars: ['♨'] }]);
+        expect(r.unknownWidthLines).toEqual([{ line: 0, chars: ['♲'] }]);
     });
 
     it('使用不可の文字は端末差警告で説明済みなのでどちらにも出ない', () => {
