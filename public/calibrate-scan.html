@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>iOS 全域スキャン v3 | #AAメーカー</title>
+<style>
+    body {
+        margin: 0;
+        padding: 12px;
+        font-family: system-ui, sans-serif;
+        background: #f5f6f8;
+        color: #24292f;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+    .card {
+        background: #fff;
+        border: 1px solid #d0d7de;
+        border-radius: 8px;
+        padding: 14px;
+        margin-bottom: 12px;
+    }
+    h1 { font-size: 16px; margin: 0 0 6px; }
+    .sub { color: #57606a; font-size: 12px; }
+    .num { font-weight: bold; }
+    .copy-btn {
+        padding: 10px 18px;
+        border: none;
+        border-radius: 6px;
+        background: #0969da;
+        color: #fff;
+        font-size: 14px;
+    }
+    textarea { width: 100%; height: 140px; font-size: 11px; margin-top: 8px; }
+    .group { margin: 6px 0; font-size: 13px; word-break: break-all; }
+    .group b { color: #0969da; }
+</style>
+</head>
+<body>
+<div class="card">
+    <h1>iOS 全域スキャン v3（所属分類の一括取得）</h1>
+    <p class="sub">
+        AA で使われうる全角想定の文字（罫線・ブロック・図形・矢印・数学・ギリシャ・
+        キリル・囲み数字・約物・単位など）を全て測り、<b>全角 1.0 で出ない文字だけ</b>を
+        洗い出します。ブラウザの測定はゲームの幅と完全一致はしませんが、
+        「どれが全角でないか」の当たりはよく合う（二重罫線で 4/4 的中）ため、
+        端末差の疑いがある文字の予測リストとして使います。
+        <b>iPhone の Safari で開いて</b>「結果をコピー」を送ってください。
+    </p>
+    <div id="status">測定中…</div>
+</div>
+<div class="card">
+    <h2 style="font-size:14px;margin:0 0 6px;">全角で出なかった文字（幅の値ごと）</h2>
+    <div id="groups"></div>
+    <button class="copy-btn" id="copy">結果を JSON でコピー</button>
+    <textarea id="json" readonly></textarea>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    // 全角 1.0 を期待する層 3 候補ブロック（半角 ASCII・かなカナ漢字は対象外）
+    var BLOCKS = [
+        [0x0370, 0x03ff], // ギリシャ
+        [0x0400, 0x045f], // キリル
+        [0x2010, 0x205e], // 一般句読点（† ‡ ‰ ′ ″ ‥ … 等）
+        [0x2100, 0x214f], // 文字様記号（℡ № 等）
+        [0x2150, 0x218b], // ローマ数字
+        [0x2190, 0x21ff], // 矢印
+        [0x2200, 0x22ff], // 数学記号
+        [0x2300, 0x23ff], // 技術記号（⌒ 等）
+        [0x2460, 0x24ff], // 囲み英数字
+        [0x2500, 0x257f], // 罫線
+        [0x2580, 0x259f], // ブロック要素
+        [0x25a0, 0x25ff], // 幾何学図形
+        [0x2600, 0x26ff], // その他の記号
+        [0x2700, 0x27bf], // 装飾記号
+        [0x3000, 0x303f], // CJK の記号と句読点
+        [0x3200, 0x32ff], // 囲み CJK
+        [0x3300, 0x33ff]  // CJK 互換（㎜ ㎝ 等）
+    ];
+
+    var canvas = document.createElement('canvas');
+    var ctx = canvas.getContext('2d');
+    function measure(ch, stack) {
+        ctx.font = '100px ' + stack;
+        return ctx.measureText(ch.repeat(10)).width / 1000;
+    }
+    var GENERIC = '__none__, sans-serif';
+    // ゲームの実測と最も整合したのは Songti 系へ落ちる経路（v2 指紋照合）。
+    // 生の経路（generic）と両方測り、どちらかで 1.0 を外れたら疑い扱いにする
+    var SERIF = '"Songti SC", serif';
+
+    function run() {
+        var total = 0;
+        var deviant = {}; // 幅の値（丸め）→ 文字列
+        for (var b = 0; b < BLOCKS.length; b++) {
+            for (var cp = BLOCKS[b][0]; cp <= BLOCKS[b][1]; cp++) {
+                var ch;
+                try { ch = String.fromCodePoint(cp); } catch (e) { continue; }
+                total++;
+                var w1 = measure(ch, GENERIC);
+                var w2 = measure(ch, SERIF);
+                var off1 = Math.abs(w1 - 1.0) > 0.03;
+                var off2 = Math.abs(w2 - 1.0) > 0.03;
+                if (off1 || off2) {
+                    // 代表値は「1.0 から遠い方」（疑いの強い方を記録する）
+                    var w = Math.abs(w1 - 1.0) >= Math.abs(w2 - 1.0) ? w1 : w2;
+                    var key = w.toFixed(2);
+                    deviant[key] = (deviant[key] || '') + ch;
+                }
+            }
+        }
+        var keys = Object.keys(deviant).sort();
+        var nDev = keys.reduce(function (a, k) { return a + Array.from(deviant[k]).length; }, 0);
+        document.getElementById('status').innerHTML =
+            '走査 <span class="num">' + total + '</span> 文字 / 全角で出なかったのは ' +
+            '<span class="num">' + nDev + '</span> 文字';
+        document.getElementById('groups').innerHTML = keys.map(function (k) {
+            var cs = deviant[k];
+            var head = Array.from(cs).slice(0, 40).join('');
+            return '<div class="group"><b>' + k + '</b>（' + Array.from(cs).length + ' 文字）: ' +
+                head + (Array.from(cs).length > 40 ? '…' : '') + '</div>';
+        }).join('');
+        document.getElementById('json').value = JSON.stringify({
+            v: 'calibrate-scan-v3', ua: navigator.userAgent,
+            total: total, deviant: deviant
+        });
+    }
+
+    document.getElementById('copy').onclick = function () {
+        var ta = document.getElementById('json');
+        ta.select();
+        if (navigator.clipboard) navigator.clipboard.writeText(ta.value);
+        else document.execCommand('copy');
+        this.textContent = 'コピーしました';
+    };
+
+    run();
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(run);
+    }
+})();
+</script>
+</body>
+</html>
