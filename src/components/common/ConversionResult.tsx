@@ -15,6 +15,7 @@ import {
     remainingFullWidth,
 } from '../../core/limit';
 import { HelpTooltip } from './HelpTooltip';
+import { textGlyph } from '../../utils/textGlyph';
 
 /**
  * 警告と同じ深刻度でプレビュー上の文字に色を付ける。
@@ -39,7 +40,7 @@ const ChatLine = ({ text }: { text: string }) => (
                 className={`chat-ch${charFlag(ch)}`}
                 style={{ width: `${charWidth(ch)}em` }}
             >
-                {ch}
+                {textGlyph(ch)}
             </span>
         ))}
         {text === '' && ' '}
@@ -146,7 +147,7 @@ export const ConversionResult = ({
                     <div className="warn-note">
                         ⚠️ ゲーム内で消えてしまう文字を取り除きました（
                         {result.removedLines
-                            .map((u) => `${u.line + 1}行目: ${u.chars.join(' ')}`)
+                            .map((u) => `${u.line + 1}行目: ${u.chars.map(textGlyph).join(' ')}`)
                             .join(' ／ ')}
                         ）。
                         {result.deviceVariantLines.length === 0 && substituteActions}
@@ -165,7 +166,7 @@ export const ConversionResult = ({
                     <div className="warn-note">
                         ⚠️ ゲーム内で正しく表示できない文字が含まれています（
                         {result.deviceVariantLines
-                            .map((u) => `${u.line + 1}行目: ${u.chars.join(' ')}`)
+                            .map((u) => `${u.line + 1}行目: ${u.chars.map(textGlyph).join(' ')}`)
                             .join(' ／ ')}
                         ）。半分の幅になる・表示されないなどの理由で形が崩れます。 iOS と Android
                         で結果が違うものもあるため、
@@ -185,7 +186,7 @@ export const ConversionResult = ({
                     <div className="warn-note">
                         ⚠️ 端末によって幅が違う疑いのある文字が含まれています（
                         {result.unknownRiskLines
-                            .map((u) => `${u.line + 1}行目: ${u.chars.join(' ')}`)
+                            .map((u) => `${u.line + 1}行目: ${u.chars.map(textGlyph).join(' ')}`)
                             .join(' ／ ')}
                         ）。実機での確認は取れていませんが、フォントの調査では iOS と Android
                         で違う幅になる兆候が出ており、形が崩れる可能性が高めです。
@@ -195,7 +196,7 @@ export const ConversionResult = ({
                     <div className="warn-note">
                         ⚠️ ゲーム内での幅が未確認の文字が含まれています（
                         {result.unknownWidthLines
-                            .map((u) => `${u.line + 1}行目: ${u.chars.join(' ')}`)
+                            .map((u) => `${u.line + 1}行目: ${u.chars.map(textGlyph).join(' ')}`)
                             .join(' ／ ')}
                         ）。端末差の兆候は出ていませんが、実機では未確認のため
                         形が崩れる可能性があります。

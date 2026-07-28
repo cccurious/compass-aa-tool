@@ -3,6 +3,7 @@ import { useDotStore } from '../../../store/useDotStore';
 import { PALETTE_CATEGORIES, PRESET_PALETTE, SUGGEST_GROUPS } from '../../../core/palette';
 import { HelpTooltip } from '../../common/HelpTooltip';
 import { trackPaletteAdd } from '../../../utils/analytics';
+import { textGlyph } from '../../../utils/textGlyph';
 
 interface PalettePanelProps {
     /** トースト表示は親が 1 か所で持つ（コピー通知と同じ場所に出すため） */
@@ -82,7 +83,7 @@ export const PalettePanel = ({ showToast }: PalettePanelProps) => {
                         className={`dot-palette-btn ${brush === ch ? 'active' : ''}`}
                         onClick={() => setBrush(ch)}
                     >
-                        {ch}
+                        {textGlyph(ch)}
                     </button>
                 ))}
                 {shown.id === 'custom' && shown.chars.length === 0 && (
@@ -133,7 +134,7 @@ export const PalettePanel = ({ showToast }: PalettePanelProps) => {
                                                     showToast(`${ch} を追加しました`);
                                                 }}
                                             >
-                                                {ch}
+                                                {textGlyph(ch)}
                                             </button>
                                         ))}
                                     </div>

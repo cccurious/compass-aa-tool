@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { textGlyph } from '../../utils/textGlyph';
 import { useDotStore, MAX_ROWS } from '../../store/useDotStore';
 import { gridToText, GRID_COLS } from '../../core/grid';
 import { convert } from '../../core/convert';
@@ -53,7 +54,7 @@ export const DotEditorView = ({ onSendToConverter, onCopied }: DotEditorViewProp
                             <div key={r} className="dot-grid-row">
                                 {row.map((cell, c) => (
                                     <div key={c} className="dot-cell" data-cell={`${r},${c}`}>
-                                        {cell}
+                                        {textGlyph(cell)}
                                     </div>
                                 ))}
                             </div>
