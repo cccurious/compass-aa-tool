@@ -39,10 +39,13 @@ interface ConversionResultProps {
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
 /**
- * 変換結果の総合判定。警告が 1 つも出ないとき「問題なし」を明示するのが主目的
- * （無言では、安心してよいのか判断材料が無いままコピーさせることになる）。
- * 文言は「開発環境の実機で確認した」という事実ベースに留め、
- * あらゆる端末での見え方は保証しない（フォントは端末・OS 版に依存するため）。
+ * 変換結果の総合判定。問題があるときだけ一言で知らせる。
+ *
+ * 「問題なし」は何も表示しない（2026-07-26 ユーザー方針）。
+ * 端末やメーカーごとのフォント差までは検査できないため、こちらの検査で
+ * 問題が出なかったことを「使える」という約束に見える形で出さない。
+ * 文言も結果の約束ではなく検査の報告の文体に揃える
+ * （「崩れます」ではなく「見つかりました」）。意味の説明は「使い方・注意」へ。
  */
 const verdictOf = (result: ConvertResult) => {
     const errors =
@@ -52,28 +55,16 @@ const verdictOf = (result: ConvertResult) => {
         result.overflowLines.length +
         result.leadingSpaceLines.length;
     if (errors > 0) {
-        return {
-            cls: 'error',
-            icon: '❌',
-            text: 'そのままでは崩れる箇所があります（下の警告を確認してください）',
-        };
+        return { cls: 'error', icon: '❌', text: '崩れてしまう文字が見つかりました' };
     }
     const cautions =
         result.unknownRiskLines.length +
         result.unknownWidthLines.length +
         result.deviceWrapRiskLines.length;
     if (cautions > 0) {
-        return {
-            cls: 'caution',
-            icon: '⚠️',
-            text: '実機で未確認の文字が含まれています（下の警告を確認してください）',
-        };
+        return { cls: 'caution', icon: '⚠️', text: 'まだ確かめられていない文字があります' };
     }
-    return {
-        cls: 'ok',
-        icon: '✅',
-        text: '実機で表示を確認できた文字だけでできています',
-    };
+    return null;
 };
 
 /** プレビュー・警告・文字数カウンタ・コピーボタン（貼り付け／ドット打ち共通） */
@@ -116,12 +107,11 @@ export const ConversionResult = ({
                 </div>
                 {(() => {
                     const v = verdictOf(result);
+                    if (!v) return null;
                     return (
                         <div className={`verdict-note ${v.cls}`}>
                             {v.icon} {v.text}
-                            {v.cls === 'ok' && (
-                                <HelpTooltip text="開発環境の iPhone / Android の実機で 1 文字ずつ表示を確認した文字だけで構成されています。端末や OS のバージョンによってフォントが変わる可能性までは保証できませんが、既知の崩れる要因はありません。" />
-                            )}
+                            <HelpTooltip text="このチェックは、開発している私の手元の iPhone と Android で調べた結果にもとづいています。機種やメーカーによってフォントが違うことがあるため、すべての端末で同じに見えることまでは分かりません。くわしくは「使い方・注意」をご覧ください。" />
                         </div>
                     );
                 })()}
