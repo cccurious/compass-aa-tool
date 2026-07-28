@@ -44,7 +44,6 @@ export const EXACT_SUBSTITUTIONS: Record<string, string> = {
     '╙': '└',
     '╛': '┘',
     '╜': '┘',
-    '╞': '├',
     '╟': '├',
     '╡': '┤',
     '╢': '┤',
@@ -52,7 +51,6 @@ export const EXACT_SUBSTITUTIONS: Record<string, string> = {
     '╥': '┬',
     '╧': '┴',
     '╨': '┴',
-    '╪': '┼',
     '╫': '┼',
     // 破線 → 確認済みの破線（点の間隔・太さまで対応が取れる）
     '╌': '┄',
