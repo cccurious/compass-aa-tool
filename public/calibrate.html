@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>フォールバック幅 較正ページ v0 | #AAメーカー</title>
+<style>
+    :root {
+        --bg: #f5f6f8;
+        --card: #fff;
+        --ink: #24292f;
+        --sub: #57606a;
+        --line: #d0d7de;
+        --ok: #1a7f37;
+        --ng: #cf222e;
+        --ref: #9a6700;
+        color-scheme: light;
+    }
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        padding: 12px;
+        font-family: system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        font-size: 14px;
+        line-height: 1.6;
+    }
+    .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px;
+        margin-bottom: 12px;
+    }
+    h1 { font-size: 16px; margin: 0 0 6px; }
+    h2 { font-size: 14px; margin: 0 0 8px; }
+    .sub { color: var(--sub); font-size: 12px; }
+    .os-row { display: flex; gap: 8px; align-items: center; margin: 8px 0; flex-wrap: wrap; }
+    .os-row button {
+        padding: 6px 14px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fff;
+        font-size: 13px;
+    }
+    .os-row button.active { background: #0969da; color: #fff; border-color: #0969da; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 4px 6px; text-align: left; }
+    th { color: var(--sub); font-weight: normal; font-size: 12px; white-space: nowrap; }
+    td.ch { font-size: 18px; width: 2em; }
+    .v-ok { color: var(--ok); font-weight: bold; }
+    .v-ng { color: var(--ng); font-weight: bold; }
+    .v-ref { color: var(--ref); }
+    .summary { font-size: 15px; font-weight: bold; margin: 8px 0; }
+    .copy-btn {
+        padding: 10px 18px;
+        border: none;
+        border-radius: 6px;
+        background: #0969da;
+        color: #fff;
+        font-size: 14px;
+    }
+    textarea { width: 100%; height: 90px; font-size: 11px; margin-top: 8px; }
+    .group-head td { background: #f6f8fa; color: var(--sub); font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="card">
+    <h1>フォールバック幅 較正ページ v0</h1>
+    <p class="sub">
+        仮説「ゲームのフォールバック先 ＝ この端末の OS フォント」の答え合わせをします。
+        ゲーム実機で幅が確定している文字だけをブラウザで測り、比率が一致するかを見ます。
+        <b>iPhone または Android のブラウザで開いてください</b>（PC では判定できません）。
+        結果はスクショを送るか、下の「結果をコピー」を貼り付けてください。
+    </p>
+    <div class="os-row">
+        <span>判定基準の端末:</span>
+        <button id="btn-ios">iOS</button>
+        <button id="btn-android">Android</button>
+        <span class="sub" id="ua-note"></span>
+    </div>
+</div>
+
+<div class="card">
+    <h2>陽性対照（ゲーム実機で非 1.0 と確定している文字・ここが一致すれば理論成立）</h2>
+    <p class="sub">
+        iOS では二重罫線 = 0.719・網かけ四角 = 0.875・濃淡 = 0.5 などと実測済み。
+        ブラウザでも同じ比率が出るなら、ブラウザを測定器としてゲームの幅を予測できます。
+    </p>
+    <table id="t-pos"></table>
+</div>
+
+<div class="card">
+    <h2>幅 1.0 群（ゲーム実機で両端末とも全角と確定している文字）</h2>
+    <table id="t-full"></table>
+</div>
+
+<div class="card">
+    <h2>陰性対照（ゲームのフォントアトラス内の文字・一致しないのが正常）</h2>
+    <p class="sub">
+        半角英数はゲーム自身のフォントで描かれるため OS フォントとは別物。
+        ここまで一致してしまったら「たまたま似たフォント」の可能性を疑う必要があります。
+    </p>
+    <table id="t-neg"></table>
+</div>
+
+<div class="card">
+    <h2>参考（ゲームでは幅 0 ＝ グリフ無しの文字）</h2>
+    <p class="sub">
+        ブラウザは別のフォントで補って表示できてしまうことが多いので、判定には使いません。
+        ブラウザ側の幅だけ記録します。
+    </p>
+    <table id="t-zero"></table>
+</div>
+
+<div class="card">
+    <div class="summary" id="summary">測定中…</div>
+    <button class="copy-btn" id="copy">結果を JSON でコピー</button>
+    <textarea id="json" readonly></textarea>
+</div>
+
+<script>
+(function () {
+    'use strict';
+    var U = 1 / 64;
+
+    // ゲーム実機で確定している幅（docs/notes/calibration-plan.md が根拠）。
+    // ios / android はゲーム内での実測幅（全角 = 1.0）。
+    var GROUPS = [
+        {
+            table: 't-pos', judge: true,
+            rows: [
+                { label: '二重罫線（iOS 46/64）', chars: '═║╔╗╚╝╠╣╦╩╬', ios: 46 * U, android: 1.0 },
+                { label: '二重・単線の接合（iOS 46/64）', chars: '╒╞╤╪', ios: 46 * U, android: 1.0 },
+                { label: '網かけ四角（iOS 56/64）', chars: '▣▤▥▦▧▨▩', ios: 56 * U, android: 1.0 },
+                { label: '濃淡（iOS 半分）', chars: '░▒▓', ios: 0.5, android: 1.0 },
+                { label: '半分ブロック 上・右（iOS 半分）', chars: '▀▐', ios: 0.5, android: 1.0 },
+                { label: '上下矢印（iOS 半分）', chars: '↕', ios: 0.5, android: 1.0 },
+                { label: '総乗（iOS 47〜48/64・And 46/64）', chars: '∏', ios: 47.5 * U, android: 46 * U, tol: 0.02 }
+            ]
+        },
+        {
+            table: 't-full', judge: true,
+            rows: [
+                { label: 'ブロック要素の生存組', chars: '█▄▌▁▔▕', ios: 1.0, android: 1.0 },
+                { label: '罫線の生存組', chars: '─━│┼╭┄┋╱╳', ios: 1.0, android: 1.0 },
+                { label: '図形の生存組', chars: '■□●◆▲◤◐▢▪▫⌒', ios: 1.0, android: 1.0 },
+                { label: '数学記号の生存組', chars: '∂∑∇∠⇅Π', ios: 1.0, android: 1.0 }
+            ]
+        },
+        {
+            table: 't-neg', judge: false,
+            rows: [
+                { label: '半角英数（ゲームは独自フォント）', chars: 'atO_.', game: { a: 39 * U, t: 32 * U, O: 51 * U, _: 32 * U, '.': 18 * U } }
+            ]
+        },
+        {
+            table: 't-zero', judge: false,
+            rows: [
+                { label: '4 分割ブロック', chars: '▘▝▖▗▚▞' },
+                { label: '破線・端点', chars: '╌╍╎╴╵╶╷' }
+            ]
+        }
+    ];
+
+    // 測定: 実在しないファミリー名を先頭に置き、ブラウザを即フォールバックへ落とす。
+    // 全文字を同じ条件で測り、基準文字「あ」の幅を 1.0 とした比率にする
+    var canvas = document.createElement('canvas');
+    var ctx = canvas.getContext('2d');
+    ctx.font = '100px __game_fallback_probe__, sans-serif';
+    function measure(ch) {
+        // 単発の測定はサブピクセルの丸めが乗るので 10 個並べて 1/10 にする
+        return ctx.measureText(ch.repeat(10)).width / 10;
+    }
+    var unit = measure('あ');
+
+    var isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    var isAndroid = /Android/.test(navigator.userAgent);
+    var os = isIOS ? 'ios' : 'android';
+    document.getElementById('ua-note').textContent =
+        '自動判定: ' + (isIOS ? 'iOS' : isAndroid ? 'Android' : 'モバイル以外');
+    if (!isIOS && !isAndroid) {
+        var warn = document.createElement('p');
+        warn.style.cssText = 'color:#cf222e;font-weight:bold;font-size:13px;';
+        warn.textContent = '⚠️ この端末はスマホではないため、判定結果に意味はありません。' +
+            'iPhone / Android で開き直してください。';
+        document.getElementById('ua-note').parentNode.appendChild(warn);
+    }
+
+    var results = [];
+
+    function render() {
+        results = [];
+        var okCount = 0, ngCount = 0;
+        GROUPS.forEach(function (g) {
+            var t = document.getElementById(g.table);
+            var html = '<tr><th>文字</th><th>ブラウザ実測</th><th>ゲーム実測</th><th>判定</th></tr>';
+            g.rows.forEach(function (row) {
+                html += '<tr class="group-head"><td colspan="4">' + row.label + '</td></tr>';
+                Array.prototype.forEach.call(Array.from(row.chars), function (ch) {
+                    var ratio = measure(ch) / unit;
+                    var expected = g.judge ? row[os] : (row.game ? row.game[ch] : null);
+                    var tol = row.tol || 0.06;
+                    var verdict, cls;
+                    if (g.judge) {
+                        var hit = Math.abs(ratio - expected) <= tol;
+                        verdict = hit ? '◎一致' : '×不一致';
+                        cls = hit ? 'v-ok' : 'v-ng';
+                        if (hit) okCount++; else ngCount++;
+                    } else {
+                        verdict = '参考';
+                        cls = 'v-ref';
+                    }
+                    results.push({ ch: ch, browser: +ratio.toFixed(4),
+                        game: expected == null ? null : +expected.toFixed(4),
+                        judged: !!g.judge, verdict: verdict });
+                    html += '<tr><td class="ch">' + ch + '</td><td>' + ratio.toFixed(3) +
+                        '</td><td>' + (expected == null ? '—' : expected.toFixed(3)) +
+                        '</td><td class="' + cls + '">' + verdict + '</td></tr>';
+                });
+            });
+            t.innerHTML = html;
+        });
+        document.getElementById('summary').textContent =
+            '判定対象 ' + (okCount + ngCount) + ' 文字中 ◎' + okCount + ' / ×' + ngCount +
+        (ngCount === 0 ? ' — 全一致。オラクル成立の可能性が高い'
+            : okCount === 0 ? ' — 全滅。ブラウザとゲームのフォールバックは別物'
+            : ' — 部分一致。どこで割れたかが手掛かり');
+        document.getElementById('json').value = JSON.stringify({
+            v: 'calibrate-v0', os: os, ua: navigator.userAgent,
+            unitPx: +unit.toFixed(2), results: results
+        });
+    }
+
+    function setOs(next) {
+        os = next;
+        document.getElementById('btn-ios').className = next === 'ios' ? 'active' : '';
+        document.getElementById('btn-android').className = next === 'android' ? 'active' : '';
+        render();
+    }
+    document.getElementById('btn-ios').onclick = function () { setOs('ios'); };
+    document.getElementById('btn-android').onclick = function () { setOs('android'); };
+
+    document.getElementById('copy').onclick = function () {
+        var ta = document.getElementById('json');
+        ta.select();
+        if (navigator.clipboard) navigator.clipboard.writeText(ta.value);
+        else document.execCommand('copy');
+        this.textContent = 'コピーしました';
+    };
+
+    // フォント読み込み完了後に測り直す（読み込み前だと代替フォントの幅で誤測定する）
+    setOs(os);
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(function () { unit = measure('あ'); render(); });
+    }
+})();
+</script>
+</body>
+</html>
