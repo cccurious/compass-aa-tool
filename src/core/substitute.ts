@@ -23,8 +23,8 @@ import { UNSAFE_DISPLAY_CHARS } from './metrics';
  * 交点の種類（角・T 字・十字）が完全に 1 対 1 で対応する。
  */
 export const EXACT_SUBSTITUTIONS: Record<string, string> = {
-    // 二重罫線 → 単線（交点の種類がそのまま対応する）
-    '═': '─',
+    // 二重罫線 → 単線（交点の種類がそのまま対応する）。
+    // ═ だけは iOS でも全角と確定して救済されたため、ここには入れない
     '║': '│',
     '╔': '┌',
     '╗': '┐',

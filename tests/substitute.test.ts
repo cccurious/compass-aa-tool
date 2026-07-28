@@ -53,10 +53,10 @@ describe('置き換え表の門番', () => {
 });
 
 describe('substituteUnsafe', () => {
-    it('二重罫線の枠をそのまま単線の枠にする', () => {
-        expect(substituteUnsafe('╔═╦═╗').text).toBe('┌─┬─┐');
-        expect(substituteUnsafe('╠═╬═╣').text).toBe('├─┼─┤');
-        expect(substituteUnsafe('╚═╩═╝').text).toBe('└─┴─┘');
+    it('二重罫線の枠を単線の枠にする（═ は救済済みなのでそのまま残る）', () => {
+        expect(substituteUnsafe('╔═╦═╗').text).toBe('┌═┬═┐');
+        expect(substituteUnsafe('╠═╬═╣').text).toBe('├═┼═┤');
+        expect(substituteUnsafe('╚═╩═╝').text).toBe('└═┴═┘');
     });
 
     it('既定では見た目が変わる置き換えを行わない', () => {
@@ -82,9 +82,9 @@ describe('substituteUnsafe', () => {
     });
 
     it('置き換えた組を重複なく報告する', () => {
-        expect(substituteUnsafe('═══║').replaced).toEqual([
-            { from: '═', to: '─' },
+        expect(substituteUnsafe('║║║╬').replaced).toEqual([
             { from: '║', to: '│' },
+            { from: '╬', to: '┼' },
         ]);
     });
 
