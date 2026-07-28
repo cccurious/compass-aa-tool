@@ -165,16 +165,27 @@
         }
     ];
 
-    // 測定: 実在しないファミリー名を先頭に置き、ブラウザを即フォールバックへ落とす。
-    // 全文字を同じ条件で測り、基準文字「あ」の幅を 1.0 とした比率にする
+    // 測定: 基準文字「あ」の幅を 1.0 とした比率にする。
+    //
+    // v0 の Android 結果から、汎用 sans-serif だとブラウザは Roboto を先に
+    // 経由することが判明した（∂∑Π∏ だけ Roboto の幅になり×、Roboto に無い
+    // 罫線・ブロック・図形は日本語フォントまで落ちて全部◎）。ゲームの
+    // フォールバックは直接日本語フォントへ行くので、測定も日本語フォントを
+    // 明示して欧文フォントを追い越させる。比較用に汎用 stack でも測って
+    // JSON には両方入れる
+    var JA_STACK = '"Noto Sans CJK JP","Noto Sans JP","Source Han Sans","Hiragino Sans",' +
+        '"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif';
     var canvas = document.createElement('canvas');
     var ctx = canvas.getContext('2d');
-    ctx.font = '100px __game_fallback_probe__, sans-serif';
-    function measure(ch) {
+    function measureWith(ch, stack) {
+        ctx.font = '100px ' + stack;
         // 単発の測定はサブピクセルの丸めが乗るので 10 個並べて 1/10 にする
         return ctx.measureText(ch.repeat(10)).width / 10;
     }
+    function measure(ch) { return measureWith(ch, JA_STACK); }
+    function measureGeneric(ch) { return measureWith(ch, '__none__, sans-serif'); }
     var unit = measure('あ');
+    var unitGeneric = measureGeneric('あ');
 
     var isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -215,6 +226,7 @@
                         cls = 'v-ref';
                     }
                     results.push({ ch: ch, browser: +ratio.toFixed(4),
+                        generic: +(measureGeneric(ch) / unitGeneric).toFixed(4),
                         game: expected == null ? null : +expected.toFixed(4),
                         judged: !!g.judge, verdict: verdict });
                     html += '<tr><td class="ch">' + ch + '</td><td>' + ratio.toFixed(3) +
@@ -230,7 +242,7 @@
             : okCount === 0 ? ' — 全滅。ブラウザとゲームのフォールバックは別物'
             : ' — 部分一致。どこで割れたかが手掛かり');
         document.getElementById('json').value = JSON.stringify({
-            v: 'calibrate-v0', os: os, ua: navigator.userAgent,
+            v: 'calibrate-v0.1', os: os, ua: navigator.userAgent,
             unitPx: +unit.toFixed(2), results: results
         });
     }
@@ -255,7 +267,11 @@
     // フォント読み込み完了後に測り直す（読み込み前だと代替フォントの幅で誤測定する）
     setOs(os);
     if (document.fonts && document.fonts.ready) {
-        document.fonts.ready.then(function () { unit = measure('あ'); render(); });
+        document.fonts.ready.then(function () {
+            unit = measure('あ');
+            unitGeneric = measureGeneric('あ');
+            render();
+        });
     }
 })();
 </script>
