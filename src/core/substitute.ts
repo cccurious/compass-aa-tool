@@ -45,7 +45,6 @@ export const EXACT_SUBSTITUTIONS: Record<string, string> = {
     '╛': '┘',
     '╜': '┘',
     '╟': '├',
-    '╡': '┤',
     '╢': '┤',
     '╤': '┬',
     '╥': '┬',
